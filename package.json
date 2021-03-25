@@ -1,0 +1,67 @@
+{
+  "name": "community-server-master",
+  "version": "1.0.0",
+  "description": "Community Web Server: Master",
+  "main": "./build/app.js",
+  "scripts": {
+    "clean": "echo Clearing current build... && rm -rf ./build",
+    "compile:typescript": "echo Compiling TypeScript... && tsc --build",
+    "build:react": "echo Building react application... && npm run build --prefix ./client",
+    "build": "npm run clean && npm run compile:typescript && npm run build:react",
+    "prepare": "cd ./client && npm install",
+    "dev": "concurrently --names Server,Client \"cross-env NODE_ENV=development nodemon\" \"npm run start --prefix ./client\"",
+    "dev-compile": "ts-node -T ./src/app.ts",
+    "prod": "cross-env NODE_ENV=production forever start ./build/app.js && echo Started production server",
+    "stop": "forever stop ./build/app.js && echo Stopped production server",
+    "restart": "npm run stop && npm run prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IronicPickle/community-server-master.git"
+  },
+  "author": "IronicPickle",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IronicPickle/community-server-master/issues"
+  },
+  "homepage": "https://github.com/IronicPickle/community-server-master#readme",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.5",
+    "cross-env": "^6.0.3",
+    "csurf": "^1.11.0",
+    "express": "^4.17.1",
+    "figlet": "^1.4.0",
+    "forever": "^3.0.0",
+    "jsonschema": "^1.2.6",
+    "react-router-dom": "^5.2.0",
+    "socket.io": "^3.1.1",
+    "typescript": "^3.9.5",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.2",
+    "@types/csurf": "^1.9.36",
+    "@types/express": "^4.17.6",
+    "@types/figlet": "^1.2.0",
+    "@types/jsonschema": "^1.1.1",
+    "@types/node": "^12.12.47",
+    "@types/react-router-dom": "^5.1.5",
+    "@types/socket.io": "^2.1.13",
+    "@types/winston": "^2.4.4",
+    "concurrently": "^5.2.0",
+    "nodemon": "^1.19.4",
+    "ts-node": "^8.10.2"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "node_modules",
+      "client"
+    ],
+    "watch": [
+      "src/**/*"
+    ],
+    "ext": "ts json",
+    "exec": "npm run dev-compile"
+  }
+}

@@ -1,0 +1,19 @@
+# Logs
+logs/
+*.log
+
+# Config directory
+config/
+
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+package-lock.json
+
+# Build directory
+build/
+
+.vs
