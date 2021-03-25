@@ -10,7 +10,7 @@ import fs from "fs";
 import { logger } from "../app";
 import { config } from "../utils/Config";
 import socketIo from "socket.io";
-import { Test } from "./socketIo/namespaces/Test";
+import { Search } from "./socketIo/namespaces/Search";
 
 export default class NodeServer {
   public port: number;
@@ -37,8 +37,6 @@ export default class NodeServer {
     this.express.use(bodyParser.json());
 
     if(config.proxy) this.express.set("trust proxy", 1);
-    
-    this.socketServer.of("/test");
   }
 
   start() {
@@ -59,7 +57,7 @@ export default class NodeServer {
       });
       
       // Socket namespaces
-      new Test(this.httpServer, this.socketServer);
+      new Search(this.httpServer, this.socketServer);
 
       for(const i in routes) {
         express.use(i, routes[i](this.httpServer, this.socketServer));

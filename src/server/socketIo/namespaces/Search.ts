@@ -1,13 +1,12 @@
 import http from "http";
-import socketIo, { Socket } from "socket.io";
+import socketIo, { Socket, Namespace } from "socket.io";
 import { logger } from "../../../app";
 
-export class Test {
-  nsp: socketIo.Namespace
-  token?: string;
+export class Search {
+  nsp: Namespace
 
   constructor(httpServer: http.Server, socketServer: socketIo.Server) {
-    this.nsp = socketServer.of("/test");
+    this.nsp = socketServer.of("/search");
     this.start();
   }
 
@@ -19,6 +18,14 @@ export class Test {
         logger.http(`[Socket.IO] Socket disconnected: ${socket.id}`);
       });
 
+      socket.on("search", (data: { council: string }) => {
+        const searchBuilder = new SearchBuilder(data.council);
+
+        
+      });
+
     });
   }
+
+  
 }

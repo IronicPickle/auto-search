@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import * as serviceWorker from "./serviceWorker";
 import { Route, BrowserRouter as Router, RouteComponentProps } from "react-router-dom";
-import { Container, createMuiTheme, withStyles } from "@material-ui/core";
+import { createMuiTheme, withStyles } from "@material-ui/core";
 import { ThemeProvider } from "@material-ui/styles";
 import { globalContext, Notification } from "./utils/contexts";
 import { Classes } from "@material-ui/styles/mergeClasses/mergeClasses";
@@ -19,7 +19,6 @@ type Props = {
 } & RouteComponentProps;
 
 interface State {
-  loggedIn: boolean;
   selectedTheme: "light" | "dark";
   csrfToken?: string;
   loading: boolean;
@@ -36,7 +35,6 @@ class index extends Component<Props, State> {
     super(props);
     const cookies = this.parseCookies(document.cookie);
     this.state = {
-      loggedIn: false,
       loading: false,
       selectedTheme: cookies.theme || "dark",
       currentRoute: window.location.pathname,
@@ -107,8 +105,7 @@ class index extends Component<Props, State> {
 
   render() {
     const {
-      loggedIn, selectedTheme,
-      notificationState, notificationData, clipboardValue
+      selectedTheme, notificationState, notificationData, clipboardValue
     } = this.state;
 
     const theme = createMuiTheme((selectedTheme === "light") ? lightTheme : darkTheme);

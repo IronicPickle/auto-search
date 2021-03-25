@@ -1,10 +1,8 @@
 import React, { Component } from "react";
 import { withStyles } from "@material-ui/core/styles";
-import { AppBar, Toolbar, Typography, Theme, Tabs, Tab, Grid, IconButton, Tooltip, Avatar, Divider, LinearProgress } from "@material-ui/core";
+import { AppBar, Toolbar, Typography, Theme, Tabs, Tab, Grid, IconButton, Tooltip, LinearProgress } from "@material-ui/core";
 import { Link } from "react-router-dom";
 import { GlobalContext, globalContext } from "../../utils/contexts";
-import MeetingRoomIcon from "@material-ui/icons/MeetingRoom";
-import NoMeetingRoomIcon from "@material-ui/icons/NoMeetingRoom";
 import Brightness5Icon from "@material-ui/icons/Brightness5";
 import Brightness4Icon from "@material-ui/icons/Brightness4";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
@@ -45,7 +43,7 @@ class Layout extends Component<Props> {
   }
 
   render() {
-    const { classes, theme, loading } = this.props;
+    const { classes, loading } = this.props;
     const { selectedTheme, toggleTheme } = this.context as GlobalContext;
 
     return (
