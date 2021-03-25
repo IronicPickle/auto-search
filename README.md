@@ -1,5 +1,5 @@
 # Auto Search Web Server
-A web platform used to scrap data from council websites.
+A web platform used to scrape data from council websites.
 
 ## Documentation
 **Commands**
