@@ -31,7 +31,7 @@ const configSchema: Schema = {
 
 const validator = new Validator();
 
-export default class BackendConfig {
+export default class Config {
   private static path = "./config/config.json";
 
   public static load() {
@@ -46,13 +46,13 @@ export default class BackendConfig {
         try {
           const parsedData = JSON.parse(data);
           const validation = validator.validate(parsedData, configSchema);
-          if(!validation.valid) return reject(`[Backend Config] backend.json does not match schema:\n  ${validation.errors.join("\n  ")}`);
+          if(!validation.valid) return reject(`[Config] config.json does not match schema:\n  ${validation.errors.join("\n  ")}`);
           
           config = parsedData;
-          logger.info("[Backend Config] Loaded backend.json file");
+          logger.info("[Config] Loaded config.json file");
           resolve();
         } catch(err) {
-          reject(`[Backend Config] ${err}`);
+          reject(`[Config] ${err}`);
         }
         
       });
@@ -65,7 +65,7 @@ export default class BackendConfig {
     if(!fs.existsSync(path.dirname(this.path))) fs.mkdirSync(path.dirname(this.path));
 
     fs.writeFileSync(this.path, JSON.stringify(defaultConfig, null, 2));
-    logger.info("[Backend Config] Generated default backend.json file");
+    logger.info("[Config] Generated default config.json file");
 
   }
 

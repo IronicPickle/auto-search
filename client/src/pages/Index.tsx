@@ -65,8 +65,16 @@ class Index extends Component<Props, State> {
     socket.on("disconnect", () => {
       console.log("[Socket.IO] Socket Disconnected");
     });
+
+    socket.on("info", (data: any) => {
+      console.log(data);
+    });
+
+    socket.on("error", (data: any) => {
+      console.log(data);
+    });
     
-    socket.on("result", (data: any) => {
+    socket.on("planning", (data: any) => {
       console.log(data);
     });
   }

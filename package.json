@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/IronicPickle/community-server-master#readme",
   "dependencies": {
+    "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",
     "cross-env": "^6.0.3",
@@ -33,6 +34,7 @@
     "express": "^4.17.1",
     "figlet": "^1.4.0",
     "forever": "^3.0.0",
+    "jsdom": "^16.5.1",
     "jsonschema": "^1.2.6",
     "react-router-dom": "^5.2.0",
     "socket.io": "^3.1.1",
@@ -40,10 +42,12 @@
     "winston": "^3.3.3"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.0",
     "@types/cookie-parser": "^1.4.2",
     "@types/csurf": "^1.9.36",
     "@types/express": "^4.17.6",
     "@types/figlet": "^1.2.0",
+    "@types/jsdom": "^16.2.7",
     "@types/jsonschema": "^1.1.1",
     "@types/node": "^12.12.47",
     "@types/react-router-dom": "^5.1.5",
