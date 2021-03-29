@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import { Address, PipeFunction } from "../SearchBuilder";
 import { JSDOM } from "jsdom";
 
@@ -7,8 +7,7 @@ const headers = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
   "Accept-Encoding": "gzip, deflate, br",
-  "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-  "Cookie": "JSESSIONID=kp1GyTlmjThmBVhmN9ztuB0kFbphfHKlBTm1PZBx.scnacolpubweb;"
+  "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8"
 }
 
 export interface AddressSearchOptions {
@@ -21,17 +20,21 @@ export default class PublicAccess {
   
   council: string;
   address: Address;
+  axios: AxiosInstance;
 
   constructor(council: string, address: Address) {
 
     this.council = council;
     this.address = address;
 
+    this.axios = axios.create({});
+
   }
 
   async getCSRFToken(baseUrl: string, pipe?: PipeFunction) {
     if(pipe != null) pipe("info", "Requesting CSRF token...");
-    const res = await axios.get(`${baseUrl}search.do?action=simple&searchType=Application`, { headers });
+    const res = await this.axios.get(`${baseUrl}search.do?action=simple&searchType=Application`, { headers });
+    console.log(res.headers)
     if(res.status == 200 && res.data != null) {
       const document = new JSDOM(res.data).window.document;
       const csrfElement = <HTMLInputElement | null> document.getElementsByName("_csrf").item(0);
@@ -42,7 +45,7 @@ export default class PublicAccess {
 
   async addressSearch(baseUrl: string, options: AddressSearchOptions, pipe: PipeFunction) {
     pipe("info", `Performing address search... ${options.query}`);
-    const res0 = await axios.get(`${baseUrl}simpleSearchResults.do?action=firstPage`, {
+    const res0 = await this.axios.get(`${baseUrl}simpleSearchResults.do?action=firstPage`, {
       params: {
         _csrf: options._csrf,
         searchType: "Application",
@@ -51,6 +54,7 @@ export default class PublicAccess {
       },
       headers, withCredentials: true
     });
+    console.log(res0.headers)
     if(res0.status == 200 && res0.data != null) {
       const document = new JSDOM(res0.data).window.document;
       const totalElement = <HTMLSpanElement | null> document.getElementsByClassName("showing").item(0);
@@ -58,7 +62,7 @@ export default class PublicAccess {
       const total = parseInt(totalElement.innerHTML.slice(totalElement.innerHTML.indexOf("of ") + 3));
       if(isNaN(total)) throw new Error("Could not get total results");
       
-      const res1 = await axios.get(`${baseUrl}pagedSearchResults.do`, {
+      const res1 = await this.axios.get(`${baseUrl}pagedSearchResults.do`, {
         params: {
           _csrf: options._csrf,
           "searchCriteria.page": 1,
