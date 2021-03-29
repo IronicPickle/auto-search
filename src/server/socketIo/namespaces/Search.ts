@@ -32,7 +32,7 @@ export class Search {
         }
 
         const planningBuilder = searchBuilder.planningBuilder;
-        planningBuilder.fullSearch((type: LogType | "data", msg: string,  data?: any) => {
+        planningBuilder.completeSearch((type: LogType | "data", msg: string,  data?: any) => {
           switch(type) {
             case "data":
               logger.info(`[Search] ${msg}`);

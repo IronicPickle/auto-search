@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button, Grow } from "@material-ui/core";
+import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button, Grow, Divider } from "@material-ui/core";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 import socketIo from "socket.io-client";
 import SearchIcon from "@material-ui/icons/Search";
@@ -23,10 +23,13 @@ const styles = (theme: Theme) => ({
   optionsContainer: {
     padding: theme.spacing(1),
     backgroundColor: theme.palette.primary.dark
+  },
+  logBreak: {
+    marginTop: theme.spacing(1)
   }
 });
 
-type LogType = "success" | "info" | "warning" | "error";
+type LogType = "success" | "info" | "warning" | "error" | "break";
 type LogEntry = {
   type: LogType;
   msg: string;
@@ -92,6 +95,10 @@ class Index extends Component<Props, State> {
     socket.on("error", (msg: string) => {
       this.logAppend({ type: "error", msg });
     });
+
+    socket.on("break", (msg: string) => {
+      this.logAppend({ type: "break", msg });
+    });
     
     socket.on("planning", (data: any) => {
       console.log(data);
@@ -152,7 +159,14 @@ class Index extends Component<Props, State> {
                       { log.map((entry, i) => (
                           <Grid item key={i}>
                             <Grow in={true} timeout={1000}>
-                              <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
+                              {
+                                entry.type === "break" ?
+                                  <div className={classes.logBreak}>
+                                    <Alert severity="info" className={classes.logEntry}>{entry.msg}</Alert>
+                                    <Divider />
+                                  </div>
+                                : <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
+                              }
                             </Grow>
                           </Grid>
                         ))

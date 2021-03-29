@@ -3,36 +3,42 @@ import PublicAccess from "../PublicAccess";
 
 export default class PlanningPublicAccess extends PublicAccess {
 
-  baseUrl: string;
-
   constructor(council: string, address: Address) {
     super(council, address);
-    
-    this.baseUrl = this.baseUrls[council];
 
-    if(this.baseUrl == null) throw new Error(`No URL for '${council}'`);
+    const baseUrl = this.baseUrls[council];
+    if(baseUrl == null) throw new Error(`No URL for '${council}'`);
+
+    this.setBaseUrl(baseUrl);
 
   }
 
-  async fullSearch(pipe: PipeFunction) {
-    pipe("info", "Requesting Credentials...");
-    const err = await this.getCredentials(this.baseUrl);
+  async completeSearch(pipe: PipeFunction) {
+    pipe("break", "Initiating Full Search");
+    pipe("info", "Requesting Credentials");
+    const err = await this.getCredentials();
     if(err != null) throw err;
-    pipe("info", "Initiating Full Search...");
+
+    pipe("break", "Initiating Planning Application Search");
     const address = this.address;
 
     if(address.postCode != null) {
-      const results = await this.addressSearch(this.baseUrl, {
+      const results = await this.customSearch({
         type: "Application",
         query: this.address.postCode || ""
       }, pipe);
+      console.log(results)
+      pipe("success", "Search Successful");
+    }
+    if(address.houseNumber != null && address.street != null) {
+      const results = await this.customSearch({
+        type: "Application",
+        query: `${address.street}` || ""
+      }, pipe);
+      console.log(results)
       pipe("success", "Search Successful");
     }
   }
-
-  
-
-  
 
   baseUrls: { [key: string]: string } = {
     stockport: "https://planning.stockport.gov.uk/PlanningData-live/",

@@ -19,11 +19,15 @@ export default class Parsers {
   }
 
   static removeSpacePadding(string: string) {
-    return string.replace(/ {2,}(?=[a-zA-Z0-9])|(?<=[a-zA-Z0-9]) {2,}/g, "");
+    return string.replace(/ {2,}(?=.)|(?<=.) {2,}/g, "").replace(/^ +| +$/g, "");
   }
 
   static removeLineBreaks(string: string) {
     return string.replace(/\n/g, "");
+  }
+
+  static removeSurroundingTags(string: string) {
+    return string.replace(/.*>(?=.)|(?<=.)<\/.*/g, "");
   }
 
 }

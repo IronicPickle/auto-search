@@ -1,5 +1,4 @@
 import PlanningPublicAccess from "./search-builders/planning/PlanningPublicAccess";
-import { AddressSearchOptions } from "./search-builders/PublicAccess";
 import { Constructable } from "./types";
 
 export interface Address {
@@ -13,15 +12,11 @@ export interface Address {
   postCode?: string;
 }
 
-export type LogType = "success" | "info" | "warn" | "error";
+export type LogType = "success" | "info" | "warn" | "error" | "break";
 export type PipeFunction = (type: LogType, msg: string,  data?: any) => any;
 
 interface PlanningBuilder {
-  fullSearch: (pipe: PipeFunction) => Promise<any>;
-  baseUrls: { [key: string]: string };
-
-  addressSearch: (query: string, options: AddressSearchOptions, pipe: PipeFunction) => any;
-  getCredentials: (baseUrl: string) => Promise<any>;
+  completeSearch: (pipe: PipeFunction) => Promise<any>;
 }
 
 export default class SearchBuilder {
