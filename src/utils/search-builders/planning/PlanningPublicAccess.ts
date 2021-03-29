@@ -15,17 +15,18 @@ export default class PlanningPublicAccess extends PublicAccess {
   }
 
   async fullSearch(pipe: PipeFunction) {
-    const _csrf = await this.getCSRFToken(this.baseUrl, pipe);
-    if(_csrf == null) throw new Error("Could not get CSRF token");
+    pipe("info", "Requesting Credentials...");
+    const err = await this.getCredentials(this.baseUrl);
+    if(err != null) throw err;
+    pipe("info", "Initiating Full Search...");
     const address = this.address;
 
     if(address.postCode != null) {
       const results = await this.addressSearch(this.baseUrl, {
         type: "Application",
-        query: "1 manchester road",
-        _csrf
+        query: this.address.postCode || ""
       }, pipe);
-      //console.log(results)
+      pipe("success", "Search Successful");
     }
   }
 

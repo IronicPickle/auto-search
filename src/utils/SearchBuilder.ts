@@ -13,14 +13,15 @@ export interface Address {
   postCode?: string;
 }
 
-export type PipeFunction = (type: "info" | "error" | "data", msg: string,  data?: any) => any;
+export type LogType = "success" | "info" | "warn" | "error";
+export type PipeFunction = (type: LogType, msg: string,  data?: any) => any;
 
 interface PlanningBuilder {
   fullSearch: (pipe: PipeFunction) => Promise<any>;
   baseUrls: { [key: string]: string };
 
   addressSearch: (query: string, options: AddressSearchOptions, pipe: PipeFunction) => any;
-  getCSRFToken: (baseUrl: string, pipe?: PipeFunction) => Promise<any>;
+  getCredentials: (baseUrl: string) => Promise<any>;
 }
 
 export default class SearchBuilder {

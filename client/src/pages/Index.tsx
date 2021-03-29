@@ -1,8 +1,9 @@
-import { Component } from "react";
-import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button } from "@material-ui/core";
+import React, { Component } from "react";
+import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button, Grow } from "@material-ui/core";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 import socketIo from "socket.io-client";
 import SearchIcon from "@material-ui/icons/Search";
+import { Alert } from "@material-ui/lab";
 
 const styles = (theme: Theme) => ({
   mainContainer: {
@@ -20,16 +21,23 @@ const styles = (theme: Theme) => ({
     width: "100%"
   },
   optionsContainer: {
+    padding: theme.spacing(1),
     backgroundColor: theme.palette.primary.dark
   }
 });
+
+type LogType = "success" | "info" | "warning" | "error";
+type LogEntry = {
+  type: LogType;
+  msg: string;
+}
 
 interface Props {
   classes: ClassNameMap;
 }
 
 interface State {
-
+  log: LogEntry[];
 }
 
 class Index extends Component<Props, State> {
@@ -38,11 +46,12 @@ class Index extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-
+      log: []
     }
 
     this.setupSocket = this.setupSocket.bind(this);
     this.startSearch = this.startSearch.bind(this);
+    this.logAppend = this.logAppend.bind(this);
   }
 
   componentDidMount() {
@@ -52,6 +61,12 @@ class Index extends Component<Props, State> {
 
   componentWillUnmount() {
     this.socket?.disconnect();
+  }
+
+  logAppend(entry: LogEntry) {
+    const log = this.state.log;
+    log.push(entry);
+    this.setState({ log });
   }
 
   setupSocket() {
@@ -66,12 +81,16 @@ class Index extends Component<Props, State> {
       console.log("[Socket.IO] Socket Disconnected");
     });
 
-    socket.on("info", (data: any) => {
-      console.log(data);
+    socket.on("success", (msg: string) => {
+      this.logAppend({ type: "success", msg });
     });
 
-    socket.on("error", (data: any) => {
-      console.log(data);
+    socket.on("info", (msg: string) => {
+      this.logAppend({ type: "info", msg });
+    });
+
+    socket.on("error", (msg: string) => {
+      this.logAppend({ type: "error", msg });
     });
     
     socket.on("planning", (data: any) => {
@@ -81,10 +100,12 @@ class Index extends Component<Props, State> {
 
   startSearch() {
     this.socket?.emit("search", { council: "stockport" });
+    this.setState({ log: [] });
   }
 
   render() {
     const { classes } = this.props;
+    const { log } = this.state;
 
     document.title = "Auto Search - Home";
 
@@ -127,7 +148,16 @@ class Index extends Component<Props, State> {
                 </Grid>
                 <Grid item xs={6}>
                   <Paper elevation={12} className={classes.optionsContainer}>
-                    
+                    <Grid container spacing={1} direction="column">
+                      { log.map((entry, i) => (
+                          <Grid item key={i}>
+                            <Grow in={true} timeout={1000}>
+                              <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
+                            </Grow>
+                          </Grid>
+                        ))
+                      }
+                    </Grid>
                   </Paper>
                 </Grid>
               </Grid>

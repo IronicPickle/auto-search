@@ -1,7 +1,7 @@
 import http from "http";
 import socketIo, { Socket, Namespace } from "socket.io";
 import { logger } from "../../../app";
-import SearchBuilder from "../../../utils/SearchBuilder";
+import SearchBuilder, { LogType } from "../../../utils/SearchBuilder";
 
 export class Search {
   nsp: Namespace
@@ -32,25 +32,27 @@ export class Search {
         }
 
         const planningBuilder = searchBuilder.planningBuilder;
-        planningBuilder.fullSearch((type: "info" | "error" | "data", msg: string,  data?: any) => {
+        planningBuilder.fullSearch((type: LogType | "data", msg: string,  data?: any) => {
           switch(type) {
-            case "info":
+            case "data":
               logger.info(`[Search] ${msg}`);
-              socket.emit("info", msg);
+              socket.emit("planning", data);
               break;
             case "error":
               logger.error(`[Search] ${msg}`);
               socket.emit("error", msg);
               break;
-            case "data":
+            default:
               logger.info(`[Search] ${msg}`);
-              socket.emit("planning", data);
+              socket.emit(type, msg);
               break;
+
           }
         }).then((data: any) => {
-          console.log(data)
+          //console.log(data)
         }).catch((err: Error) => {
-          logger.error(err);
+          logger.error(`[Search] ${err}`);
+          socket.emit("error", err.message);
         });
         
       });
