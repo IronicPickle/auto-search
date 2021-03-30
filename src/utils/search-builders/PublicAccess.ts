@@ -2,7 +2,6 @@ import axios, { AxiosInstance } from "axios";
 import { Address, PipeFunction } from "../SearchBuilder";
 import { JSDOM } from "jsdom";
 import Parsers from "../parsers";
-import { logger } from "../../app";
 import { Building, Planning } from "../interfaces";
 import { queryElement } from "../utils";
 import { buildingFields, planningFields } from "../vars";
@@ -69,13 +68,13 @@ export default class PublicAccess {
   }
 
   protected async customSearch(options: CustomSearchOptions, pipe: PipeFunction) {
-    pipe("info", `Performing Address Search... ${options.query}`);
+    pipe("info", `Performing Search '${options.query}'`);
     
     const total = await this.initialSearch(options);
     const { rawResults, parsedResults } = await this.fullSearch(total);
 
     pipe("success", `Found ${rawResults.length} Results [${parsedResults.length} Matching Address]`)
-    pipe("break", "Cycling Results...");
+    pipe("break", "Cycling Results");
 
     return await this.cycleResults(parsedResults, options.type, pipe);
   }

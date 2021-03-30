@@ -1,3 +1,4 @@
+import { logger } from "../../../app";
 import { Address, PipeFunction } from "../../SearchBuilder";
 import PublicAccess from "../PublicAccess";
 

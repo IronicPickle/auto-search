@@ -29,6 +29,17 @@ const styles = (theme: Theme) => ({
   }
 });
 
+export interface Address {
+  [key: string]: any;
+  companyName?: string;
+  flatNumber?: string;
+  houseName?: string;
+  houseNumber?: string;
+  street?: string;
+  addressLine2?: string;
+  postCode?: string;
+}
+
 type LogType = "success" | "info" | "warning" | "error" | "break";
 type LogEntry = {
   type: LogType;
@@ -40,6 +51,8 @@ interface Props {
 }
 
 interface State {
+  council: string;
+  address: Address;
   log: LogEntry[];
 }
 
@@ -49,7 +62,9 @@ class Index extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-      log: []
+      log: [],
+      council: "",
+      address: {}
     }
 
     this.setupSocket = this.setupSocket.bind(this);
@@ -106,13 +121,16 @@ class Index extends Component<Props, State> {
   }
 
   startSearch() {
-    this.socket?.emit("search", { council: "stockport" });
+    const { council, address } = this.state;
+    this.socket?.emit("completeSearch", { council, address });
     this.setState({ log: [] });
   }
 
   render() {
     const { classes } = this.props;
     const { log } = this.state;
+
+    console.log(log)
 
     document.title = "Auto Search - Home";
 

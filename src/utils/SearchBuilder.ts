@@ -1,3 +1,4 @@
+import { logger } from "../app";
 import PlanningPublicAccess from "./search-builders/planning/PlanningPublicAccess";
 import { Constructable } from "./types";
 
@@ -26,6 +27,9 @@ export default class SearchBuilder {
   planningBuilder?: PlanningBuilder;
 
   constructor(council: string, address: Address) {
+    
+    logger.info(`Attempting to Buil [${council}] Search Builder, using the following address:`);
+    logger.info(JSON.stringify(address));
 
     this.council = council;
     this.address = address;

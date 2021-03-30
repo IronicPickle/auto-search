@@ -1,4 +1,5 @@
 import http from "http";
+import { Address } from "node:cluster";
 import socketIo, { Socket, Namespace } from "socket.io";
 import { logger } from "../../../app";
 import SearchBuilder, { LogType } from "../../../utils/SearchBuilder";
@@ -19,15 +20,10 @@ export class Search {
         logger.http(`[Search] Socket disconnected: ${socket.id}`);
       });
 
-      socket.on("search", (data: { council: string }) => {
-        const searchBuilder = new SearchBuilder("stockport", {
-          houseNumber: "59",
-          street: "Silverdale Road",
-          addressLine2: "Gatley",
-          postCode: "SK8 4QR"
-        });
+      socket.on("completeSearch", (data: { council: string, address: Address }) => {
+        const searchBuilder = new SearchBuilder(data.council, data.address);
         if(searchBuilder.planningBuilder == null) {
-          socket.emit("error", { msg: `'${data.council} is not supported at the moment'` });
+          socket.emit("error", `'${data.council}' is not a valid council`);
           return logger.info(`[Search] Client requested search for invalid council '${data.council}'`);
         }
 
