@@ -5,10 +5,12 @@ import Parsers from "../parsers";
 import { Building, Planning } from "../interfaces";
 import { queryElement } from "../utils";
 import { buildingFields, planningFields } from "../vars";
+import { logger } from "../../app";
 
 export interface CustomSearchOptions {
   type: "Application" | "Building";
   query: string;
+  strict: boolean;
 }
 
 export default class PublicAccess {
@@ -70,16 +72,17 @@ export default class PublicAccess {
   protected async customSearch(options: CustomSearchOptions, pipe: PipeFunction) {
     pipe("info", `Performing Search '${options.query}'`);
     
-    const total = await this.initialSearch(options);
-    const { rawResults, parsedResults } = await this.fullSearch(total);
+    const total = await this.simpleSearch(options);
+    const results = await this.fullSimpleSearch(total);
+    const parsedResults = this.parseResults(results, options.strict);
 
-    pipe("success", `Found ${rawResults.length} Results [${parsedResults.length} Matching Address]`)
+    pipe("success", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
     pipe("break", "Cycling Results");
 
     return await this.cycleResults(parsedResults, options.type, pipe);
   }
 
-  private async initialSearch(options: CustomSearchOptions) {
+  private async simpleSearch(options: CustomSearchOptions) {
     
     const res = await this.axios.get("simpleSearchResults.do?action=firstPage", {
       params: {
@@ -101,7 +104,7 @@ export default class PublicAccess {
     
   }
 
-  private async fullSearch(total: number) {
+  private async fullSimpleSearch(total: number) {
 
     const res1 = await this.axios.get("pagedSearchResults.do", {
       params: {
@@ -116,11 +119,16 @@ export default class PublicAccess {
 
     if(res1.status != 200 || res1.data == null) throw new Error("HTTP Request Failed");
     const document = new JSDOM(res1.data).window.document;
-    const rawResults = Array.from(document.getElementsByClassName("searchresult"));
+    return Array.from(document.getElementsByClassName("searchresult"));
+
+  }
+
+  private parseResults(results: Element[], strict: boolean) {
 
     const parsedResults: { reference: string, address: string, path: string }[] = [];
-    for(const i in rawResults) {
-      const searchresultsElement = <HTMLLIElement> rawResults[i];
+
+    for(const i in results) {
+      const searchresultsElement = <HTMLLIElement> results[i];
       
       const metaElement = <HTMLParagraphElement | null> searchresultsElement.getElementsByClassName("metaInfo").item(0);
       if(metaElement == null) continue;
@@ -135,17 +143,34 @@ export default class PublicAccess {
       const path = pathElement.getAttribute("href")?.replace(/.*(?=\/)/g, "");
       if(path == null) continue;
       
-      if(this.checkAddress(address)) parsedResults.push({ reference, address, path });
+      if(this.checkAddress(address, strict)) parsedResults.push({ reference, address, path });
 
     }
 
-    return { rawResults, parsedResults };
-
+    return parsedResults;
   }
 
-  private checkAddress(address: string) {
+  private checkAddress(address: string, strict: boolean) {
+
+    address = address.toLowerCase();
+    const searchAddress = this.address;
+    for(const i in searchAddress) {
+      if(searchAddress[i] != null) searchAddress[i] = searchAddress[i].toLowerCase();
+    }
+    console.log(searchAddress)
+    
+    logger.info(`Checking '${address}'`);
 
     let valid = true;
+
+    if(this.address.house != null) valid = (address.startsWith(`${this.address.house} ${this.address.street}`));
+    if(strict) {
+      let regionMatch = false;
+      let postcodeMatch = false;
+      if(this.address.addressLine2 != null) regionMatch = (address.includes(this.address.addressLine2));
+      if(this.address.postCode != null) regionMatch = (address.includes(this.address.postCode));
+    }
+
     for(const i in this.address) {
       if(this.address[i] == null) continue;
       if(!address.toLowerCase().includes(this.address[i].toLowerCase())) valid = false;

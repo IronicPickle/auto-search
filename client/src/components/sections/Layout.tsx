@@ -8,6 +8,9 @@ import Brightness4Icon from "@material-ui/icons/Brightness4";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 
 const styles = (theme: Theme) => ({
+  appBar: {
+    backgroundColor: theme.palette.background.default
+  },
   title: {
     textDecoration: "none",
     marginRight: 24,
@@ -49,7 +52,7 @@ class Layout extends Component<Props> {
     return (
       <>
         <>
-          <AppBar>
+          <AppBar className={classes.appBar}>
             <div style={{ position: "absolute" as "absolute", width: "100%" }}>
               <LinearProgress variant="query" hidden={!loading} color="secondary" />
             </div>
@@ -95,11 +98,10 @@ class Layout extends Component<Props> {
                     <Tooltip
                       title={(selectedTheme === "light") ? "Make it Dark" : "Turn the Lights on"}
                       placement="bottom"
-                      PopperProps={{ disablePortal: true }}
                     >
                       <IconButton onClick={() => toggleTheme()}>
                         { (selectedTheme === "light") ?
-                          <Brightness4Icon /> : <Brightness5Icon />
+                          <Brightness4Icon color="secondary" /> : <Brightness5Icon color="secondary" />
                         }
                       </IconButton>
                     </Tooltip>

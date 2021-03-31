@@ -4,10 +4,7 @@ import { Constructable } from "./types";
 
 export interface Address {
   [key: string]: any;
-  companyName?: string;
-  flatNumber?: string;
-  houseName?: string;
-  houseNumber?: string;
+  house?: string;
   street?: string;
   addressLine2?: string;
   postCode?: string;
@@ -17,7 +14,7 @@ export type LogType = "success" | "info" | "warn" | "error" | "break";
 export type PipeFunction = (type: LogType, msg: string,  data?: any) => any;
 
 interface PlanningBuilder {
-  completeSearch: (pipe: PipeFunction) => Promise<any>;
+  completeSearch: (strict: boolean, pipe: PipeFunction) => Promise<any>;
 }
 
 export default class SearchBuilder {
@@ -28,7 +25,7 @@ export default class SearchBuilder {
 
   constructor(council: string, address: Address) {
     
-    logger.info(`Attempting to Buil [${council}] Search Builder, using the following address:`);
+    logger.info(`Attempting to Build [${council}] Search Builder, using the following address:`);
     logger.info(JSON.stringify(address));
 
     this.council = council;

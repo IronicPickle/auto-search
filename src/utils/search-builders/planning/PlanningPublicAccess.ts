@@ -1,4 +1,3 @@
-import { logger } from "../../../app";
 import { Address, PipeFunction } from "../../SearchBuilder";
 import PublicAccess from "../PublicAccess";
 
@@ -14,7 +13,7 @@ export default class PlanningPublicAccess extends PublicAccess {
 
   }
 
-  async completeSearch(pipe: PipeFunction) {
+  async completeSearch(strict: boolean, pipe: PipeFunction) {
     pipe("break", "Initiating Full Search");
     pipe("info", "Requesting Credentials");
     const err = await this.getCredentials();
@@ -26,7 +25,8 @@ export default class PlanningPublicAccess extends PublicAccess {
     if(address.postCode != null) {
       const results = await this.customSearch({
         type: "Application",
-        query: this.address.postCode || ""
+        query: this.address.postCode || "",
+        strict
       }, pipe);
       console.log(results)
       pipe("success", "Search Successful");
@@ -34,7 +34,8 @@ export default class PlanningPublicAccess extends PublicAccess {
     if(address.houseNumber != null && address.street != null) {
       const results = await this.customSearch({
         type: "Application",
-        query: `${address.street}` || ""
+        query: `${address.street}` || "",
+        strict
       }, pipe);
       console.log(results)
       pipe("success", "Search Successful");
