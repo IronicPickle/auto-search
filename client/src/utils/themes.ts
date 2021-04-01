@@ -65,12 +65,12 @@ export const darkTheme: Theme = createMuiTheme({
     },
     divider: "rgba(235,235,235,1)",
     action: {
-      active: "rgba(2355,235,235,0.9)",
-      hover: "rgba(235,235,235,1)",
-      selected: "rgba(235,235,235,1)",
-      disabled: "rgba(235,235,235,0.55)",
-      disabledBackground: "rgba(235,235,235,0.55)",
-      focus: "rgba(235,235,235,1)"
+      active: "rgba(36,55,84,0.9)",
+      hover: "rgba(36,55,84,0.25)",
+      selected: "rgba(36,55,84,0.30)",
+      disabled: "rgba(235,235,235,1)",
+      disabledBackground: "rgba(36,55,84,0.65)",
+      focus: "rgba(36,55,84,0.25)"
     },
     background: {
       paper: "rgba(16,19,33,1)",
