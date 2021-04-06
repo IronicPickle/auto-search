@@ -1,4 +1,5 @@
 import { logger } from "../app";
+import BuildingPublicAccess from "./search-builders/planning/BuildingPublicAccess";
 import PlanningPublicAccess from "./search-builders/planning/PlanningPublicAccess";
 import { Constructable } from "./types";
 
@@ -17,25 +18,32 @@ interface PlanningBuilder {
   completeSearch: (strict: boolean, pipe: PipeFunction) => Promise<any>;
 }
 
+interface BuildingBuilder {
+  completeSearch: (strict: boolean, pipe: PipeFunction) => Promise<any>;
+}
+
 export default class SearchBuilder {
 
   council: string;
   address: Address;
-  planningBuilder?: PlanningBuilder;
+  planning?: PlanningBuilder;
+  building?: BuildingBuilder;
 
   constructor(council: string, address: Address) {
     
-    logger.info(`Attempting to Build [${council}] Search Builder, using the following address:`);
-    logger.info(JSON.stringify(address));
 
     this.council = council;
     this.address = address;
 
     const PlanningBuilder = this.planningBuilders[council];
     if(PlanningBuilder == null) return;
-    this.planningBuilder = new PlanningBuilder(council, address);
+    this.planning = new PlanningBuilder(council, address);
 
+    const BuildingBuilder = this.buildingBuilders[council];
+    if(BuildingBuilder == null) return;
+    this.building = new BuildingBuilder(council, address);
 
+    logger.info(`[Search] Built ${council.toUpperCase()} Search Builder: ${JSON.stringify(address).toUpperCase()}`)
 
   }
 
@@ -45,6 +53,13 @@ export default class SearchBuilder {
     rochdale: PlanningPublicAccess,
     tameside: PlanningPublicAccess,
     manchester: PlanningPublicAccess
+  }
+
+  buildingBuilders: { [key: string]: Constructable<BuildingBuilder> } = {
+    stockport: BuildingPublicAccess,
+    bolton: BuildingPublicAccess,
+    rochdale: BuildingPublicAccess,
+    manchester: BuildingPublicAccess
   }
 
 }

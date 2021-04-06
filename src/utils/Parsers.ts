@@ -15,7 +15,13 @@ export default class Parsers {
   }
 
   static removePadding(string: string) {
-    return this.removeSpacePadding(this.removeLineBreaks(string));
+    return this.removeSpacePadding(
+      this.removeLineBreaks(string)
+    );
+  }
+
+  static removeHTMLTags(string: string) {
+    return string.replace(/<.*>/g, "");
   }
 
   static removeSpacePadding(string: string) {
@@ -24,10 +30,6 @@ export default class Parsers {
 
   static removeLineBreaks(string: string) {
     return string.replace(/\n/g, "");
-  }
-
-  static removeSurroundingTags(string: string) {
-    return string.replace(/.*>(?=.)|(?<=.)<\/.*/g, "");
   }
 
 }

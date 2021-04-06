@@ -6,6 +6,7 @@
     "@material-ui/core": "^4.9.10",
     "@material-ui/icons": "^4.5.1",
     "@material-ui/lab": "^4.0.0-alpha.49",
+    "moment": "^2.29.1",
     "react": "^16.10.2",
     "react-dom": "^16.10.2",
     "react-scripts": "^4.0.3",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@material-ui/types": "^4.1.1",
     "@types/http-proxy-middleware": "^0.19.3",
+    "@types/moment": "^2.13.0",
     "@types/react": "16.9.9",
     "@types/react-dom": "16.9.2",
     "@types/react-router-dom": "^5.1.4",

@@ -1,9 +1,13 @@
 import React, { Component } from "react";
-import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button, Grow, Divider, TextField, Checkbox, FormControlLabel, Select, MenuItem, ButtonBase } from "@material-ui/core";
+import { withStyles, Theme, Container, Typography, Paper, Toolbar, Grid, Button, Grow, TextField, Checkbox, FormControlLabel, Select, MenuItem, Accordion, AccordionSummary, AccordionDetails, CircularProgress, Tooltip } from "@material-ui/core";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 import socketIo from "socket.io-client";
 import SearchIcon from "@material-ui/icons/Search";
 import { Alert } from "@material-ui/lab";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import { Building, Planning } from "../components/utils/interfaces";
+import PlanningContainer from "../components/sections/containers/Planning";
+import BuildingContainer from "../components/sections/containers/Building";
 
 const styles = (theme: Theme) => ({
   mainContainer: {
@@ -20,8 +24,13 @@ const styles = (theme: Theme) => ({
   contentTitle: {
     width: "100%"
   },
-  optionsContainer: {
-    padding: theme.spacing(1)
+  inputsContainer: {
+    margin: theme.spacing(1),
+    padding: theme.spacing(4)
+  },
+  dataContainer: {
+    margin: theme.spacing(1),
+    padding: theme.spacing(2)
   },
 
   fieldContainer: {
@@ -31,9 +40,20 @@ const styles = (theme: Theme) => ({
   checkboxContainer: {
     marginLeft: theme.spacing(2)
   },
+  searchLoading: {
+    marginRight: theme.spacing(2)
+  },
 
+  logChunk: {
+    margin: theme.spacing(1)
+  },
+
+  logEntry: {
+    width: "100%",
+  },
   logBreak: {
-    marginTop: theme.spacing(1)
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText
   },
 });
 
@@ -57,11 +77,20 @@ interface Props {
 
 interface State {
   [key: string]: any;
-  log: LogEntry[];
+
+  searchState: boolean;
+
+  log: LogEntry[][];
+  chunkStates: boolean[];
+
   council: string;
   address: Address;
   strict: boolean;
+
   errors?: any;
+
+  planningApps: Planning[],
+  buildingRegs: Building[]
 }
 
 class Index extends Component<Props, State> {
@@ -70,15 +99,24 @@ class Index extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      searchState: false,
+
       log: [],
+      chunkStates: [],
+
       council: "none",
       address: {},
-      strict: false
+      strict: false,
+
+      planningApps: [],
+      buildingRegs: []
     }
 
     this.setupSocket = this.setupSocket.bind(this);
     this.startSearch = this.startSearch.bind(this);
+    this.toggleChunk = this.toggleChunk.bind(this);
     this.logAppend = this.logAppend.bind(this);
+    this.logChunk = this.logChunk.bind(this);
 
     this.changeAddress = this.changeAddress.bind(this);
     this.toggleStrictMode = this.toggleStrictMode.bind(this);
@@ -108,9 +146,25 @@ class Index extends Component<Props, State> {
     this.setState({ council });
   }
 
+  toggleChunk(index: number) {
+    return (event: React.ChangeEvent<{}>, expanded: boolean) => {
+      const chunkStates = this.state.chunkStates;
+      chunkStates[index] = expanded;
+      this.setState({ chunkStates });
+    }
+  }
+
+  logChunk(entry: LogEntry) {
+    const { log, chunkStates } = this.state;
+    log.push([ entry ]);
+    chunkStates[chunkStates.length - 1] = false;
+    chunkStates.push(true);
+    this.setState({ log, chunkStates });
+  }
+
   logAppend(entry: LogEntry) {
     const log = this.state.log;
-    log.push(entry);
+    log[log.length - 1].push(entry);
     this.setState({ log });
   }
 
@@ -126,7 +180,13 @@ class Index extends Component<Props, State> {
       console.log("[Socket.IO] Socket Disconnected");
     });
 
+    socket.on("break", (msg: string) => {
+      this.setState({ errors: null });
+      this.logChunk({ type: "break", msg });
+    });
+
     socket.on("success", (msg: string) => {
+      this.setState({ errors: null });
       this.logAppend({ type: "success", msg });
     });
 
@@ -137,29 +197,36 @@ class Index extends Component<Props, State> {
     socket.on("error", (msg: string) => {
       this.logAppend({ type: "error", msg });
     });
-
-    socket.on("break", (msg: string) => {
-      this.logAppend({ type: "break", msg });
-    });
     
     socket.on("planning", (data: any) => {
-      console.log(data);
+      this.setState({ searchState: false, planningApps: data });
+    });
+    
+    socket.on("building", (data: any) => {
+      this.setState({ searchState: false, buildingRegs: data });
     });
 
     socket.on("errors SEARCH_DETAILS", (errors: any) => {
-      this.setState({ errors });
+      this.setState({ errors, searchState: false });
+      this.logAppend({ type: "error", msg: "Something Went Wrong" })
     });
   }
 
   startSearch() {
     const { strict, council, address } = this.state;
     this.socket?.emit("completeSearch", { strict, council, address });
-    this.setState({ log: [] });
+    this.setState({
+      searchState: true,
+      log: [ [ { type: "break", msg: "Starting Search" } ] ],
+      chunkStates: [ true ],
+      planningApps: [],
+      buildingRegs: []
+    });
   }
 
   render() {
     const { classes } = this.props;
-    const { log, council, address, strict, errors } = this.state;
+    const { log, chunkStates, council, address, strict, errors, searchState, planningApps, buildingRegs } = this.state;
 
     document.title = "Auto Search - Home";
 
@@ -189,107 +256,158 @@ class Index extends Component<Props, State> {
             <Container>
               <Grid container spacing={4}>
                 <Grid item xs={6}>
-                  <Grid container direction="column" spacing={4} alignItems="center">
-                    <Grid item className={classes.fieldContainer}>
-                      <Select
-                        value={council}
-                        onChange={event => this.changeCouncil(event.target.value as string)}
-                        fullWidth
-                      >
-                        <MenuItem value="none" dense>None</MenuItem>
-                        <MenuItem value="stockport" dense>Stockport</MenuItem>
-                      </Select>
-                    </Grid>
-                    <Grid item className={classes.fieldContainer}>
-                      <Grid container spacing={4}>
-                        <Grid item xs={4}>
-                          <TextField
-                            label="House"
-                            value={address.house}
-                            fullWidth
-                            onChange={event => this.changeAddress("house", event.target.value as string)}
-                            className={classes.houseField}
-                            error={errors?.address?.house != null}
-                            helperText={errors?.address?.house}
-                          />
-                        </Grid>
-                        <Grid item xs={8}>
-                          <TextField
-                            label="Street"
-                            value={address.street}
-                            fullWidth
-                            onChange={event => this.changeAddress("street", event.target.value as string)}
-                            className={classes.streetField}
-                            error={errors?.address?.street != null}
-                            helperText={errors?.address?.street}
-                          />
+                  <Paper variant="outlined" className={classes.inputsContainer}>
+                    <Grid container direction="column" spacing={4} alignItems="center">
+                      <Grid item className={classes.fieldContainer}>
+                        <Select
+                          value={council}
+                          onChange={event => this.changeCouncil(event.target.value as string)}
+                          fullWidth
+                          error={errors?.council != null}
+                          disabled={searchState}
+                        >
+                          <MenuItem value="none" dense>None</MenuItem>
+                          <MenuItem value="stockport" dense>Stockport</MenuItem>
+                          <MenuItem value="bolton" dense>Bolton</MenuItem>
+                          <MenuItem value="rochdale" dense>Rochdale</MenuItem>
+                        </Select>
+                      </Grid>
+                      <Grid item className={classes.fieldContainer}>
+                        <Grid container spacing={4}>
+                          <Grid item xs={4}>
+                            <TextField
+                              label="House"
+                              value={address.house}
+                              fullWidth
+                              onChange={event => this.changeAddress("house", event.target.value as string)}
+                              className={classes.houseField}
+                              error={errors?.address?.house != null}
+                              helperText={errors?.address?.house}
+                              disabled={searchState}
+                            />
+                          </Grid>
+                          <Grid item xs={8}>
+                            <TextField
+                              label="Street"
+                              value={address.street}
+                              fullWidth
+                              onChange={event => this.changeAddress("street", event.target.value as string)}
+                              className={classes.streetField}
+                              error={errors?.address?.street != null}
+                              helperText={errors?.address?.street}
+                              disabled={searchState}
+                            />
+                          </Grid>
                         </Grid>
                       </Grid>
-                    </Grid>
-                    <Grid item className={classes.fieldContainer}>
-                      <TextField
-                        label="Region / Locality"
-                        value={address.addressLine2}
-                        fullWidth
-                        onChange={event => this.changeAddress("addressLine2", event.target.value as string)}
-                        className={classes.field}
-                        error={errors?.address?.addressLine2 != null}
-                        helperText={errors?.address?.addressLine2}
-                      />
-                    </Grid>
-                    <Grid item className={classes.fieldContainer}>
-                      <TextField
-                        label="Post Code"
-                        value={address.postCode}
-                        fullWidth
-                        onChange={event => this.changeAddress("postCode", event.target.value as string)}
-                        className={classes.field}
-                        error={errors?.address?.postCode != null}
-                        helperText={errors?.address?.postCode}
-                      />
-                    </Grid>
-                    <Grid item style={{ width: "100%" }}>
-                      <Toolbar disableGutters>
-                        <Grid container />
-                        <Grid container justify="center">
-                          <Button
-                            size="medium"
-                            variant="contained"
-                            color="primary"
-                            onClick={this.startSearch}
-                            disabled={council === "none"}
-                          >Run Search</Button>
-                        </Grid>
-                        <Grid container className={classes.checkboxContainer}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox checked={strict} onChange={() => this.toggleStrictMode()} />
+                      <Grid item className={classes.fieldContainer}>
+                        <TextField
+                          label="Region / Locality"
+                          value={address.addressLine2}
+                          fullWidth
+                          onChange={event => this.changeAddress("addressLine2", event.target.value as string)}
+                          className={classes.field}
+                          error={errors?.address?.addressLine2 != null}
+                          helperText={errors?.address?.addressLine2}
+                          disabled={searchState || !strict}
+                        />
+                      </Grid>
+                      <Grid item className={classes.fieldContainer}>
+                        <TextField
+                          label="Post Code"
+                          value={address.postCode}
+                          fullWidth
+                          onChange={event => this.changeAddress("postCode", event.target.value as string)}
+                          className={classes.field}
+                          error={errors?.address?.postCode != null}
+                          helperText={errors?.address?.postCode}
+                          disabled={searchState}
+                        />
+                      </Grid>
+                      <Grid item style={{ width: "100%" }}>
+                        <Toolbar disableGutters style={{ minHeight: 0 }}>
+                          <Grid container justify="center">
+                            {searchState &&
+                              <Toolbar disableGutters style={{ minHeight: 0 }}>
+                                <CircularProgress color="secondary" className={classes.searchLoading} />
+                                <Typography
+                                  variant="body2"
+                                  component="p"
+                                  noWrap
+                                ><b>Searching</b></Typography>
+                              </Toolbar>
                             }
-                            label="Strict Mode"
-                          />
-                        </Grid>
-                      </Toolbar>
+                          </Grid>
+                          <Grid container justify="center">
+                            <Button
+                              size="medium"
+                              variant="contained"
+                              color="primary"
+                              onClick={this.startSearch}
+                              disabled={council === "none" || searchState}
+                            >Run Search</Button>
+                          </Grid>
+                          <Grid container className={classes.checkboxContainer}>
+                            <Tooltip title="Forces at least the Region / Locality or Post Code to Match">
+                              <FormControlLabel
+                                control={
+                                  <Checkbox checked={strict} onChange={() => this.toggleStrictMode()} />
+                                }
+                                label="Strict Mode"
+                                disabled={searchState}
+                              />
+                            </Tooltip>
+                          </Grid>
+                        </Toolbar>
+                      </Grid>
                     </Grid>
-                  </Grid>
+                  </Paper>
+                  <Paper
+                    variant="outlined"
+                    hidden={planningApps.length === 0 && buildingRegs.length === 0}
+                    className={classes.dataContainer}
+                  >
+                    <Typography
+                      variant="h6"
+                      component="h2"
+                      align="center"
+                      hidden={planningApps.length === 0}
+                    >Planning</Typography>
+                    { planningApps.map(planningApp => <PlanningContainer planning={planningApp} /> ) }
+                    <Typography
+                      variant="h6"
+                      component="h2"
+                      align="center"
+                      hidden={buildingRegs.length === 0}
+                    >Building</Typography>
+                    { buildingRegs.map(buildingReg => <BuildingContainer building={buildingReg} /> ) }
+                  </Paper>
                 </Grid>
                 <Grid item xs={6}>
-                  <Grid container spacing={1} direction="column">
-                    { log.map((entry, i) => (
-                        <Grid item key={i}>
-                          <Grow in={true} timeout={1000}>
-                            {
-                              entry.type === "break" ?
-                                <div className={classes.logBreak}>
-                                  <Alert severity="info" className={classes.logEntry}>{entry.msg}</Alert>
-                                  <Divider />
-                                </div>
-                              : <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
-                            }
-                          </Grow>
-                        </Grid>
-                      ))
-                    }
-                  </Grid>
+                  { log.map((chunk, i) => (
+                      <Accordion
+                        variant="outlined"
+                        expanded={chunkStates[i]}
+                        onChange={this.toggleChunk(i)}
+                        className={classes.logChunk}
+                      >
+                        { chunk.map(entry => (
+                            <Grow in={true} timeout={1000}>
+                              {
+                                entry.type === "break" ?
+                                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Alert severity="info" className={`${classes.logEntry} ${classes.logBreak}`}>{entry.msg}</Alert>
+                                  </AccordionSummary>
+                                : <AccordionDetails>
+                                    <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
+                                  </AccordionDetails>
+                              }
+                            </Grow>
+                          ))
+                        }
+                      </Accordion>
+                    ))
+                  }
                 </Grid>
               </Grid>
             </Container>

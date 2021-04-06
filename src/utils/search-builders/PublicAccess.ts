@@ -8,7 +8,7 @@ import { buildingFields, planningFields } from "../vars";
 import { logger } from "../../app";
 
 export interface CustomSearchOptions {
-  type: "Application" | "Building";
+  type: "Application" | "BuildingControl";
   query: string;
   strict: boolean;
 }
@@ -52,8 +52,7 @@ export default class PublicAccess {
       const document = new JSDOM(res.data).window.document;
 
       const csrfElement = <HTMLInputElement | null> document.getElementsByName("_csrf").item(0);
-      if(csrfElement == null) return new Error("Could not get Session ID");
-      this.csrfToken = csrfElement.value;
+      this.csrfToken = csrfElement?.value || "";
 
       const headerArray = <string[]> res.headers["set-cookie"][0].split(";");
       const headers = Parsers.headers(headerArray);
@@ -70,14 +69,29 @@ export default class PublicAccess {
   }
 
   protected async customSearch(options: CustomSearchOptions, pipe: PipeFunction) {
-    pipe("info", `Performing Search '${options.query}'`);
+    pipe("break", `Performing Search - ${options.query.toUpperCase()}`);
     
-    const total = await this.simpleSearch(options);
-    const results = await this.fullSimpleSearch(total);
-    const parsedResults = this.parseResults(results, options.strict);
+    const result = await this.simpleSearch(options);
+    let results: any[] = [];
+    let parsedResults: {
+      reference: string;
+      address: string;
+      path: string;
+    }[] = [];
+    if(typeof(result) === "number") {
+      results = await this.fullSimpleSearch(result);
+      parsedResults = this.parseResults(results, options.strict);
+    } else {
+      results = [ null ];
+      parsedResults = [ {
+        reference: Parsers.removePadding(result.getElementsByClassName("caseNumber").item(0)?.innerHTML || ""),
+        address: "",
+        path: (result.getElementById("subtab_details")?.getAttribute("href") || "").replace(/.*(?=\/)/g, "")
+      } ];
+    }
 
     pipe("success", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
-    pipe("break", "Cycling Results");
+    pipe("info", "Cycling Results");
 
     return await this.cycleResults(parsedResults, options.type, pipe);
   }
@@ -95,10 +109,14 @@ export default class PublicAccess {
     
     if(res.status != 200 || res.data == null) throw new Error("HTTP Request Failed");
     const document = new JSDOM(res.data).window.document;
+    if(document.getElementById("simpleDetailsTable") != null) return document;
+    
+    let total = 999;
     const totalElement = <HTMLSpanElement | null> document.getElementsByClassName("showing").item(0);
-    if(totalElement == null) throw new Error("Could not get total results");
-    const total = parseInt(totalElement.innerHTML.slice(totalElement.innerHTML.indexOf("of ") + 3));
-    if(isNaN(total)) throw new Error("Could not get total results");
+    if(totalElement != null) {
+      let total = parseInt(totalElement.innerHTML.slice(totalElement.innerHTML.indexOf("of ") + 3));
+      if(isNaN(total)) throw new Error("Could not get total results");
+    }
 
     return total;
     
@@ -136,7 +154,7 @@ export default class PublicAccess {
 
       const addressElement = <HTMLParagraphElement | null> searchresultsElement.getElementsByClassName("address").item(0);
       if(addressElement == null) continue;
-      const address = Parsers.removePadding(addressElement.innerHTML);
+      const address = Parsers.removePadding(addressElement.innerHTML).replace(/,|\./g, "");
 
       const pathElement = <HTMLSpanElement | null> searchresultsElement.getElementsByTagName("a").item(0)
       if(pathElement == null) continue;
@@ -157,37 +175,33 @@ export default class PublicAccess {
     for(const i in searchAddress) {
       if(searchAddress[i] != null) searchAddress[i] = searchAddress[i].toLowerCase();
     }
-    console.log(searchAddress)
-    
-    logger.info(`Checking '${address}'`);
 
-    let valid = true;
+    let matches = {
+      houseStreet: true,
+      region: true,
+      postcode: true
+    };
 
-    if(this.address.house != null) valid = (address.startsWith(`${this.address.house} ${this.address.street}`));
+    const houseStreetRegex = new RegExp(`( |^)${this.address.house} ${this.address.street?.replace(/\./g, "")}`, "g");
+    if(this.address.house != null) matches.houseStreet = address.match(houseStreetRegex) != null;
     if(strict) {
-      let regionMatch = false;
-      let postcodeMatch = false;
-      if(this.address.addressLine2 != null) regionMatch = (address.includes(this.address.addressLine2));
-      if(this.address.postCode != null) regionMatch = (address.includes(this.address.postCode));
+      if(this.address.addressLine2 != null) matches.region = (address.includes(this.address.addressLine2));
+      if(this.address.postCode != null) matches.postcode = (address.includes(this.address.postCode)) || (address.includes(this.address.postCode.replace(/ /g, "")));
     }
+    logger.info(`| HOUSE_STREET: ${matches.houseStreet} | REGION: ${matches.region} | POSTCODE: ${matches.postcode} | - ${address}`);
 
-    for(const i in this.address) {
-      if(this.address[i] == null) continue;
-      if(!address.toLowerCase().includes(this.address[i].toLowerCase())) valid = false;
-    }
-
-    return valid;
+    return matches.houseStreet && !(!matches.region && !matches.postcode);
 
   }
 
-  private async cycleResults(parsedResults: { reference: string, address: string, path: string }[], type: "Application" | "Building", pipe: PipeFunction) {
+  private async cycleResults(parsedResults: { reference: string, address: string, path: string }[], type: "Application" | "BuildingControl", pipe: PipeFunction) {
     
     const results: Planning[] | Building[] = [];
 
     for(const i in parsedResults) {
       const parsedResult = parsedResults[i];
-      pipe("info", `Requesting data for ${parsedResult.reference}`);
-      const result = await this.resultSearch(parsedResult.path, type, pipe);
+      pipe("info", `Requesting Data for ${parsedResult.reference}`);
+      const result = await this.resultSearchFull(parsedResult.path, type);
       if(result != null) results.push(result);
     }
 
@@ -195,12 +209,21 @@ export default class PublicAccess {
 
   }
 
-  private async resultSearch(path: string, type: "Application" | "Building", pipe: PipeFunction) {
+  private async resultSearchFull(path: string, type: "Application" | "BuildingControl") {
 
-    const res = await this.axios.get(path);
+    const partial0 = await this.resultSearchPartial(path, "summary", type);
+    const partial1 = await this.resultSearchPartial(path, "dates", type);
+    const partial2 = await this.resultSearchPartial(path, "details", type);
+
+    return { ...partial0, ...partial1, ...partial2 };
+
+  }
+
+  private async resultSearchPartial(path: string, tab: string, type: "Application" | "BuildingControl") {
+
+    const res = await this.axios.get(path.replace(/(?<=activeTab=)(.*?)(?=&|$)/g, tab));
     const document = new JSDOM(res.data).window.document;
-    const data = (type === "Application") ? this.extractPlanningInfo(document) : this.extractBuildingInfo(document);
-    return data;
+    return (type === "Application") ? this.extractPlanningInfo(document) : this.extractBuildingInfo(document);
 
   }
 
@@ -218,14 +241,10 @@ export default class PublicAccess {
         const tdElement1 = <HTMLTableDataCellElement> trElement.children.item(1);
 
         const name = Parsers.removePadding(
-          Parsers.removeSurroundingTags(
-            tdElement0.innerHTML
-          )
+          Parsers.removeHTMLTags(tdElement0.innerHTML)
         );
         const value = Parsers.removePadding(
-          Parsers.removeSurroundingTags(
-            tdElement1.innerHTML
-          )
+          Parsers.removeHTMLTags(tdElement1.innerHTML)
         );
         if(name == null || value == null) return;
 
@@ -236,16 +255,53 @@ export default class PublicAccess {
         });
       });
 
+    if(planning.decisionIssuedDate != null)
+      planning.decisionIssuedDate = new Date(planning.decisionIssuedDate).getTime();
+
+    if(planning.decisionMadeDate != null)
+      planning.decisionMadeDate = new Date(planning.decisionMadeDate).getTime();
+
+    if(planning.applicationReceivedDate != null)
+      planning.applicationReceivedDate = new Date(planning.applicationReceivedDate).getTime();
+
     return planning;
   }
 
   extractBuildingInfo(document: Document) {
+    const tbodyElement = queryElement(["id:simpleDetailsTable", "tbody"], document) || 
+      queryElement(["id:applicationDetails", "tbody"], document) ||
+      queryElement(["id:appealDetails", "tbody"], document);
+    if(tbodyElement == null) return;
 
     const building = <Building> {}
 
+    Array.from(tbodyElement.getElementsByTagName("tr"))
+      .map((trElement: HTMLTableRowElement) => {
+        const tdElement0 = <HTMLTableHeaderCellElement> trElement.children.item(0);
+        const tdElement1 = <HTMLTableDataCellElement> trElement.children.item(1);
+
+        const name = Parsers.removePadding(
+          Parsers.removeHTMLTags(tdElement0.innerHTML)
+        );
+        const value = Parsers.removePadding(
+          Parsers.removeHTMLTags(tdElement1.innerHTML)
+        );
+        if(name == null || value == null) return;
+
+        buildingFields.map(buildingField => {
+          if(name.toLowerCase() === buildingField.documentId) {
+            building[buildingField.actualId] = value;
+          }
+        });
+      });
+
+    if(building.decisionDate != null)
+      building.decisionDate = new Date(building.decisionDate).getTime();
+
+    if(building.applicationReceivedDate != null)
+      building.applicationReceivedDate = new Date(building.applicationReceivedDate).getTime();
 
     return building;
-
   }
 
 }
