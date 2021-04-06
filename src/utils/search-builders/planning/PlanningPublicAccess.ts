@@ -25,6 +25,7 @@ export default class PlanningPublicAccess extends PublicAccess {
     const planningApps: Planning[] = [];
 
     if(address.postCode != null) {
+      pipe("break", "Performing Post Code Search");
       const results = <Planning[]> await this.customSearch({
         type: "Application",
         query: this.address.postCode || "",
@@ -33,6 +34,7 @@ export default class PlanningPublicAccess extends PublicAccess {
       this.appendResults(planningApps, results);
     }
     if(address.house != null && address.street != null) {
+      pipe("break", "Performing House and Street Search");
       const results = await this.customSearch({
         type: "Application",
         query: `${address.house} ${address.street}` || "",

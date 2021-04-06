@@ -2,7 +2,7 @@
 
 // Main imports
 import React, { Component } from "react";
-import { Container, Grid, TextField, Theme, Typography, withStyles } from "@material-ui/core";
+import { TextField, Theme, withStyles } from "@material-ui/core";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 import { Building } from "../../utils/interfaces";
 import moment from "moment";

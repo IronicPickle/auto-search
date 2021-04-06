@@ -69,7 +69,7 @@ export default class PublicAccess {
   }
 
   protected async customSearch(options: CustomSearchOptions, pipe: PipeFunction) {
-    pipe("break", `Performing Search - ${options.query.toUpperCase()}`);
+    pipe("info", `Search Query - ${options.query.toUpperCase()}`);
     
     const result = await this.simpleSearch(options);
     let results: any[] = [];

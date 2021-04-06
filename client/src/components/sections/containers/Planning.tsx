@@ -2,7 +2,7 @@
 
 // Main imports
 import React, { Component } from "react";
-import { Container, Grid, TextField, Theme, Typography, withStyles } from "@material-ui/core";
+import { TextField, Theme, withStyles } from "@material-ui/core";
 import { ClassNameMap } from "@material-ui/core/styles/withStyles";
 import { Planning } from "../../utils/interfaces";
 import moment from "moment";
@@ -53,12 +53,12 @@ class PlanningContainer extends Component<Props, State> {
     if(planning != null) {
 
       let matchedDecision = decisions.find(decision => {
-        if(planning?.decision == null) return;
+        if(planning?.decision == null) return null;
         return decision.matches.includes(planning.decision.toLowerCase())
       });
       if(matchedDecision == null) {
         matchedDecision = decisions.find(decision => {
-          if(planning?.status == null) return;
+          if(planning?.status == null) return null;
           return decision.matches.includes(planning.status.toLowerCase())
         });
       }

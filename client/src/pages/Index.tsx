@@ -8,6 +8,7 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { Building, Planning } from "../components/utils/interfaces";
 import PlanningContainer from "../components/sections/containers/Planning";
 import BuildingContainer from "../components/sections/containers/Building";
+import TocIcon from "@material-ui/icons/Toc";
 
 const styles = (theme: Theme) => ({
   mainContainer: {
@@ -53,7 +54,8 @@ const styles = (theme: Theme) => ({
   },
   logBreak: {
     backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText
+    color: theme.palette.primary.contrastText,
+    boxShadow: theme.shadows[4]
   },
 });
 
@@ -395,8 +397,8 @@ class Index extends Component<Props, State> {
                             <Grow in={true} timeout={1000}>
                               {
                                 entry.type === "break" ?
-                                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Alert severity="info" className={`${classes.logEntry} ${classes.logBreak}`}>{entry.msg}</Alert>
+                                  <AccordionSummary expandIcon={<ExpandMoreIcon color="secondary" />}>
+                                    <Alert severity="info" className={`${classes.logEntry} ${classes.logBreak}`} icon={<TocIcon color="secondary"/>} >{entry.msg}</Alert>
                                   </AccordionSummary>
                                 : <AccordionDetails>
                                     <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
