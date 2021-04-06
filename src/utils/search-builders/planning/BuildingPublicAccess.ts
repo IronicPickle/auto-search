@@ -24,7 +24,7 @@ export default class BuildingPublicAccess extends PublicAccess {
 
     const buildingRegs: Building[] = [];
 
-    if(address.postCode != null) {
+    /*if(address.postCode != null) {
       pipe("break", "Performing Post Code Search");
       const results = <Building[]> await this.customSearch({
         type: "BuildingControl",
@@ -32,7 +32,7 @@ export default class BuildingPublicAccess extends PublicAccess {
         strict
       }, pipe);
       this.appendResults(buildingRegs, results);
-    }
+    }*/
     if(address.house != null && address.street != null) {
       pipe("break", "Performing House and Street Search");
       const results = await this.customSearch({

@@ -9,6 +9,7 @@ import { Building, Planning } from "../components/utils/interfaces";
 import PlanningContainer from "../components/sections/containers/Planning";
 import BuildingContainer from "../components/sections/containers/Building";
 import TocIcon from "@material-ui/icons/Toc";
+import WarningIcon from "@material-ui/icons/Warning";
 
 const styles = (theme: Theme) => ({
   mainContainer: {
@@ -201,11 +202,19 @@ class Index extends Component<Props, State> {
     });
     
     socket.on("planning", (data: any) => {
-      this.setState({ searchState: false, planningApps: data });
+      const chunkStates = this.state.chunkStates.map((chunkState, i) => {
+        return this.state.log[i].find(logEntry => logEntry.type === "error") != null
+      });
+      chunkStates[chunkStates.length - 1] = true;
+      this.setState({ searchState: false, planningApps: data, chunkStates });
     });
     
     socket.on("building", (data: any) => {
-      this.setState({ searchState: false, buildingRegs: data });
+      const chunkStates = this.state.chunkStates.map((chunkState, i) => {
+        return this.state.log[i].find(logEntry => logEntry.type === "error") != null
+      });
+      chunkStates[chunkStates.length - 1] = true;
+      this.setState({ searchState: false, buildingRegs: data, chunkStates });
     });
 
     socket.on("errors SEARCH_DETAILS", (errors: any) => {
@@ -259,110 +268,112 @@ class Index extends Component<Props, State> {
               <Grid container spacing={4}>
                 <Grid item xs={6}>
                   <Paper variant="outlined" className={classes.inputsContainer}>
-                    <Grid container direction="column" spacing={4} alignItems="center">
-                      <Grid item className={classes.fieldContainer}>
-                        <Select
-                          value={council}
-                          onChange={event => this.changeCouncil(event.target.value as string)}
-                          fullWidth
-                          error={errors?.council != null}
-                          disabled={searchState}
-                        >
-                          <MenuItem value="none" dense>None</MenuItem>
-                          <MenuItem value="stockport" dense>Stockport</MenuItem>
-                          <MenuItem value="bolton" dense>Bolton</MenuItem>
-                          <MenuItem value="rochdale" dense>Rochdale</MenuItem>
-                        </Select>
-                      </Grid>
-                      <Grid item className={classes.fieldContainer}>
-                        <Grid container spacing={4}>
-                          <Grid item xs={4}>
-                            <TextField
-                              label="House"
-                              value={address.house}
-                              fullWidth
-                              onChange={event => this.changeAddress("house", event.target.value as string)}
-                              className={classes.houseField}
-                              error={errors?.address?.house != null}
-                              helperText={errors?.address?.house}
-                              disabled={searchState}
-                            />
-                          </Grid>
-                          <Grid item xs={8}>
-                            <TextField
-                              label="Street"
-                              value={address.street}
-                              fullWidth
-                              onChange={event => this.changeAddress("street", event.target.value as string)}
-                              className={classes.streetField}
-                              error={errors?.address?.street != null}
-                              helperText={errors?.address?.street}
-                              disabled={searchState}
-                            />
-                          </Grid>
+                    <form onSubmit={event => { event.stopPropagation(); event.preventDefault(); this.startSearch(); }}>
+                      <Grid container direction="column" spacing={4} alignItems="center">
+                        <Grid item className={classes.fieldContainer}>
+                          <Select
+                            value={council}
+                            onChange={event => this.changeCouncil(event.target.value as string)}
+                            fullWidth
+                            error={errors?.council != null}
+                            disabled={searchState}
+                          >
+                            <MenuItem value="none" dense>None</MenuItem>
+                            <MenuItem value="stockport" dense>Stockport</MenuItem>
+                            <MenuItem value="bolton" dense>Bolton</MenuItem>
+                            <MenuItem value="rochdale" dense>Rochdale</MenuItem>
+                          </Select>
                         </Grid>
-                      </Grid>
-                      <Grid item className={classes.fieldContainer}>
-                        <TextField
-                          label="Region / Locality"
-                          value={address.addressLine2}
-                          fullWidth
-                          onChange={event => this.changeAddress("addressLine2", event.target.value as string)}
-                          className={classes.field}
-                          error={errors?.address?.addressLine2 != null}
-                          helperText={errors?.address?.addressLine2}
-                          disabled={searchState || !strict}
-                        />
-                      </Grid>
-                      <Grid item className={classes.fieldContainer}>
-                        <TextField
-                          label="Post Code"
-                          value={address.postCode}
-                          fullWidth
-                          onChange={event => this.changeAddress("postCode", event.target.value as string)}
-                          className={classes.field}
-                          error={errors?.address?.postCode != null}
-                          helperText={errors?.address?.postCode}
-                          disabled={searchState}
-                        />
-                      </Grid>
-                      <Grid item style={{ width: "100%" }}>
-                        <Toolbar disableGutters style={{ minHeight: 0 }}>
-                          <Grid container justify="center">
-                            {searchState &&
-                              <Toolbar disableGutters style={{ minHeight: 0 }}>
-                                <CircularProgress color="secondary" className={classes.searchLoading} />
-                                <Typography
-                                  variant="body2"
-                                  component="p"
-                                  noWrap
-                                ><b>Searching</b></Typography>
-                              </Toolbar>
-                            }
-                          </Grid>
-                          <Grid container justify="center">
-                            <Button
-                              size="medium"
-                              variant="contained"
-                              color="primary"
-                              onClick={this.startSearch}
-                              disabled={council === "none" || searchState}
-                            >Run Search</Button>
-                          </Grid>
-                          <Grid container className={classes.checkboxContainer}>
-                            <Tooltip title="Forces at least the Region / Locality or Post Code to Match">
-                              <FormControlLabel
-                                control={
-                                  <Checkbox checked={strict} onChange={() => this.toggleStrictMode()} />
-                                }
-                                label="Strict Mode"
+                        <Grid item className={classes.fieldContainer}>
+                          <Grid container spacing={4}>
+                            <Grid item xs={4}>
+                              <TextField
+                                label="House"
+                                value={address.house}
+                                fullWidth
+                                onChange={event => this.changeAddress("house", event.target.value as string)}
+                                className={classes.houseField}
+                                error={errors?.address?.house != null}
+                                helperText={errors?.address?.house}
                                 disabled={searchState}
                               />
-                            </Tooltip>
+                            </Grid>
+                            <Grid item xs={8}>
+                              <TextField
+                                label="Street"
+                                value={address.street}
+                                fullWidth
+                                onChange={event => this.changeAddress("street", event.target.value as string)}
+                                className={classes.streetField}
+                                error={errors?.address?.street != null}
+                                helperText={errors?.address?.street}
+                                disabled={searchState}
+                              />
+                            </Grid>
                           </Grid>
-                        </Toolbar>
+                        </Grid>
+                        <Grid item className={classes.fieldContainer}>
+                          <TextField
+                            label="Region / Locality"
+                            value={address.addressLine2}
+                            fullWidth
+                            onChange={event => this.changeAddress("addressLine2", event.target.value as string)}
+                            className={classes.field}
+                            error={errors?.address?.addressLine2 != null}
+                            helperText={errors?.address?.addressLine2}
+                            disabled={searchState || !strict}
+                          />
+                        </Grid>
+                        <Grid item className={classes.fieldContainer}>
+                          <TextField
+                            label="Post Code"
+                            value={address.postCode}
+                            fullWidth
+                            onChange={event => this.changeAddress("postCode", event.target.value as string)}
+                            className={classes.field}
+                            error={errors?.address?.postCode != null}
+                            helperText={errors?.address?.postCode}
+                            disabled={searchState || !strict}
+                          />
+                        </Grid>
+                        <Grid item style={{ width: "100%" }}>
+                          <Toolbar disableGutters style={{ minHeight: 0 }}>
+                            <Grid container justify="center">
+                              {searchState &&
+                                <Toolbar disableGutters style={{ minHeight: 0 }}>
+                                  <CircularProgress color="secondary" className={classes.searchLoading} />
+                                  <Typography
+                                    variant="body2"
+                                    component="p"
+                                    noWrap
+                                  ><b>Searching</b></Typography>
+                                </Toolbar>
+                              }
+                            </Grid>
+                            <Grid container justify="center">
+                              <Button
+                                size="medium"
+                                variant="contained"
+                                color="primary"
+                                type="submit"
+                                disabled={council === "none" || searchState}
+                              >Run Search</Button>
+                            </Grid>
+                            <Grid container className={classes.checkboxContainer}>
+                              <Tooltip title="Forces at least the Region / Locality or Post Code to Match">
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox checked={strict} onChange={() => this.toggleStrictMode()} />
+                                  }
+                                  label="Strict Mode"
+                                  disabled={searchState}
+                                />
+                              </Tooltip>
+                            </Grid>
+                          </Toolbar>
+                        </Grid>
                       </Grid>
-                    </Grid>
+                    </form>
                   </Paper>
                   <Paper
                     variant="outlined"
@@ -398,8 +409,16 @@ class Index extends Component<Props, State> {
                               {
                                 entry.type === "break" ?
                                   <AccordionSummary expandIcon={<ExpandMoreIcon color="secondary" />}>
-                                    <Alert severity="info" className={`${classes.logEntry} ${classes.logBreak}`} icon={<TocIcon color="secondary"/>} >{entry.msg}</Alert>
-                                  </AccordionSummary>
+                                    <Alert
+                                      severity="info"
+                                      className={`${classes.logEntry} ${classes.logBreak}`}
+                                      icon={
+                                        (chunk.find(entry0 => entry0.type === "error") != null) ?
+                                          <WarningIcon color="secondary"/>
+                                          : <TocIcon color="secondary"/>
+                                      }
+                                    >{entry.msg}</Alert>
+                                    </AccordionSummary>
                                 : <AccordionDetails>
                                     <Alert severity={entry.type} className={classes.logEntry}>{entry.msg}</Alert>
                                   </AccordionDetails>

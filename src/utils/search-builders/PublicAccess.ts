@@ -79,19 +79,22 @@ export default class PublicAccess {
       path: string;
     }[] = [];
     if(typeof(result) === "number") {
-      results = await this.fullSimpleSearch(result);
-      parsedResults = this.parseResults(results, options.strict);
+      if(result > 0) {
+        results = await this.fullSimpleSearch(result);
+        parsedResults = this.parseResults(results, options.strict);
+      }
     } else {
       results = [ null ];
-      parsedResults = [ {
+      const parsedResult = {
         reference: Parsers.removePadding(result.getElementsByClassName("caseNumber").item(0)?.innerHTML || ""),
-        address: "",
+        address: Parsers.removePadding(result.getElementsByClassName("address").item(0)?.innerHTML || ""),
         path: (result.getElementById("subtab_details")?.getAttribute("href") || "").replace(/.*(?=\/)/g, "")
-      } ];
+      };
+      if(this.checkAddress(parsedResult.address, options.strict)) parsedResults.push(parsedResult);
     }
 
     pipe("success", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
-    pipe("info", "Cycling Results");
+    if(result !== 0) pipe("info", "Cycling Results");
 
     return await this.cycleResults(parsedResults, options.type, pipe);
   }
@@ -109,9 +112,12 @@ export default class PublicAccess {
     
     if(res.status != 200 || res.data == null) throw new Error("HTTP Request Failed");
     const document = new JSDOM(res.data).window.document;
+    
     if(document.getElementById("simpleDetailsTable") != null) return document;
     
-    let total = 999;
+    if(document.getElementsByClassName("messagebox").item(0) != null) return 0;
+
+    let total = 9999;
     const totalElement = <HTMLSpanElement | null> document.getElementsByClassName("showing").item(0);
     if(totalElement != null) {
       let total = parseInt(totalElement.innerHTML.slice(totalElement.innerHTML.indexOf("of ") + 3));
