@@ -123,6 +123,8 @@ class Index extends Component<Props, State> {
     this.logAppend = this.logAppend.bind(this);
     this.logChunk = this.logChunk.bind(this);
 
+    this.reset = this.reset.bind(this);
+
     this.changeAddress = this.changeAddress.bind(this);
     this.toggleStrictMode = this.toggleStrictMode.bind(this);
     this.changeCouncil = this.changeCouncil.bind(this);
@@ -171,6 +173,16 @@ class Index extends Component<Props, State> {
     const log = this.state.log;
     log[log.length - 1].push(entry);
     this.setState({ log });
+  }
+
+  reset() {
+    this.setState({
+      searchState: false,
+      log: [],
+      chunkStates: [],
+      planningApps: [],
+      buildingRegs: []
+    });
   }
 
   setupSocket() {

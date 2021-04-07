@@ -122,7 +122,7 @@ export class Search {
         let buildingRegs = [];
 
         if(searchBuilder.planning != null) {
-          planningApps = await searchBuilder.planning.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
+          planningApps = await searchBuilder.planning.completeSearch(data.strict, this.pipe(socket)).catch((err: Error) => {
             logger.error(`[Search] ${err}`);
             socket.emit("error", err.message);
           });
@@ -132,7 +132,7 @@ export class Search {
         }
 
         if(searchBuilder.building != null) {
-          buildingRegs = await searchBuilder.building.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
+          buildingRegs = await searchBuilder.building.completeSearch(data.strict, this.pipe(socket)).catch((err: Error) => {
             logger.error(`[Search] ${err}`);
             socket.emit("error", err.message);
           });
@@ -142,12 +142,15 @@ export class Search {
         }
 
         socket.emit("break", "Search Summary");
-        socket.emit("info", `Planning Applications Found: ${planningApps.length}`);
-        socket.emit("info", `Building Regulations Found: ${buildingRegs.length}`);
-        socket.emit("success", "Search Successful");
+        if(planningApps != null) {
+          socket.emit("info", `Planning Applications Found: ${planningApps.length}`);
+          socket.emit("planning", planningApps);
+        } if(buildingRegs != null) {
+          socket.emit("info", `Building Regulations Found: ${buildingRegs.length}`);
+          socket.emit("building", buildingRegs);
+        }
+        socket.emit("success", "Search Finished");
         
-        socket.emit("planning", planningApps);
-        socket.emit("building", buildingRegs);
 
       });
 

@@ -6,6 +6,7 @@ import { Building, Planning } from "../interfaces";
 import { queryElement } from "../utils";
 import { buildingFields, planningFields } from "../vars";
 import { logger } from "../../app";
+import { Options } from "body-parser";
 
 export interface CustomSearchOptions {
   type: "Application" | "BuildingControl";
@@ -78,25 +79,40 @@ export default class PublicAccess {
       address: string;
       path: string;
     }[] = [];
+
     if(typeof(result) === "number") {
       if(result > 0) {
         results = await this.fullSimpleSearch(result);
         parsedResults = this.parseResults(results, options.strict);
       }
     } else {
-      results = [ null ];
-      const parsedResult = {
-        reference: Parsers.removePadding(result.getElementsByClassName("caseNumber").item(0)?.innerHTML || ""),
-        address: Parsers.removePadding(result.getElementsByClassName("address").item(0)?.innerHTML || ""),
-        path: (result.getElementById("subtab_details")?.getAttribute("href") || "").replace(/.*(?=\/)/g, "")
-      };
-      if(this.checkAddress(parsedResult.address, options.strict)) parsedResults.push(parsedResult);
+      const parsedResult = this.parsePage(result, options.strict);
+      if(parsedResult != null) {
+        parsedResults = [ parsedResult ];
+        results = [ null ];
+      }
     }
 
     pipe("info", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
-    if(result !== 0) pipe("info", "Cycling Results");
+    if(result !== 0) {
+      pipe("info", "Cycling Results");
+      return await this.cycleResults(parsedResults, options.type, pipe);
+    }
+    
+    return [];
+  }
 
-    return await this.cycleResults(parsedResults, options.type, pipe);
+  parsePage(document: Document, strict: boolean) {
+    const parsedResult = {
+      reference: Parsers.removePadding(document.getElementsByClassName("caseNumber").item(0)?.innerHTML || ""),
+      address: Parsers.parseHTMLEntities(
+        Parsers.removePadding(document.getElementsByClassName("address").item(0)?.innerHTML || "")
+      ),
+      path: (document.getElementById("subtab_details")?.getAttribute("href") || "").replace(/.*(?=\/)/g, "")
+    }
+
+    if(this.checkAddress(parsedResult.address, strict)) return parsedResult;
+    return null;
   }
 
   private async simpleSearch(options: CustomSearchOptions) {
@@ -115,6 +131,7 @@ export default class PublicAccess {
     
     if(document.getElementById("simpleDetailsTable") != null) return document;
     
+    if(document.getElementsByClassName("messagebox errors").item(0) != null) throw new Error("No Results Found - Too many Results");
     if(document.getElementsByClassName("messagebox").item(0) != null) return 0;
 
     let total = 9999;
@@ -160,7 +177,7 @@ export default class PublicAccess {
 
       const addressElement = <HTMLParagraphElement | null> searchresultsElement.getElementsByClassName("address").item(0);
       if(addressElement == null) continue;
-      const address = Parsers.removePadding(addressElement.innerHTML).replace(/,|\./g, "");
+      const address = Parsers.parseHTMLEntities(Parsers.removePadding(addressElement.innerHTML));
 
       const pathElement = <HTMLSpanElement | null> searchresultsElement.getElementsByTagName("a").item(0)
       if(pathElement == null) continue;
@@ -176,27 +193,36 @@ export default class PublicAccess {
 
   private checkAddress(address: string, strict: boolean) {
 
-    address = address.toLowerCase();
+    address = address.toLowerCase().replace(/[,.]/g, "");
     const searchAddress = this.address;
     for(const i in searchAddress) {
       if(searchAddress[i] != null) searchAddress[i] = searchAddress[i].toLowerCase();
     }
 
     let matches = {
-      houseStreet: true,
-      region: true,
-      postcode: true
+      houseStreet: false,
+      addressLine2: false,
+      postCode: false
     };
 
-    const houseStreetRegex = new RegExp(`( |^)${this.address.house} ${this.address.street?.replace(/\./g, "")}`, "g");
-    if(this.address.house != null) matches.houseStreet = address.match(houseStreetRegex) != null;
-    if(strict) {
-      if(this.address.addressLine2 != null) matches.region = (address.includes(this.address.addressLine2));
-      if(this.address.postCode != null) matches.postcode = (address.includes(this.address.postCode)) || (address.includes(this.address.postCode.replace(/ /g, "")));
-    }
-    logger.info(`| HOUSE_STREET: ${matches.houseStreet} | REGION: ${matches.region} | POSTCODE: ${matches.postcode} | - ${address}`);
+    const base = "[ \\-_&+,./]";
+    const start = `(?<=${base}|^)`;
+    const end = `(?=${base}|$)`;
 
-    return matches.houseStreet && !(!matches.region && !matches.postcode);
+    const houseStreetRegex = new RegExp(`${start}${searchAddress.house} ${searchAddress.street}${end}`, "g");
+    const addressLine2Regex = new RegExp(`${start}${searchAddress.addressLine2}${end}`, "g");
+    const postCodeRegex = new RegExp(`${start}${searchAddress.postCode}${end}`, "g");
+    const postCodeNoSpaceRegex = new RegExp(`${start}${searchAddress.postCode?.replace(/ /g, "")}${end}`, "g");
+
+    matches.houseStreet = address.match(houseStreetRegex) != null;
+    if(strict) {
+      if(searchAddress.addressLine2 != null) matches.addressLine2 = address.match(addressLine2Regex) != null;
+      if(searchAddress.postCode != null) matches.postCode = address.match(postCodeRegex) != null || address.match(postCodeNoSpaceRegex) != null;
+    }
+
+    logger.info(`| HOUSE & STREET: ${matches.houseStreet} | REGION / LOCALITY: ${matches.addressLine2} | POSTCODE: ${matches.postCode} | - ${address}`);
+
+    return matches.houseStreet && (!strict || matches.addressLine2 || matches.postCode);
 
   }
 
@@ -249,8 +275,10 @@ export default class PublicAccess {
         const name = Parsers.removePadding(
           Parsers.removeHTMLTags(tdElement0.innerHTML)
         );
-        const value = Parsers.removePadding(
-          Parsers.removeHTMLTags(tdElement1.innerHTML)
+        const value = Parsers.parseHTMLEntities(
+          Parsers.removePadding(
+            Parsers.removeHTMLTags(tdElement1.innerHTML)
+          )
         );
         if(name == null || value == null) return;
 
@@ -289,8 +317,10 @@ export default class PublicAccess {
         const name = Parsers.removePadding(
           Parsers.removeHTMLTags(tdElement0.innerHTML)
         );
-        const value = Parsers.removePadding(
-          Parsers.removeHTMLTags(tdElement1.innerHTML)
+        const value = Parsers.parseHTMLEntities(
+          Parsers.removePadding(
+            Parsers.removeHTMLTags(tdElement1.innerHTML)
+          )
         );
         if(name == null || value == null) return;
 

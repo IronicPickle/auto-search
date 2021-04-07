@@ -1,3 +1,5 @@
+import { JSDOM } from "jsdom";
+
 export default class Parsers {
 
   static headers(headerArray: string[]): { [key: string]: string } {
@@ -12,6 +14,13 @@ export default class Parsers {
       return { [key]: value };
     }).reduce((result, current) => Object.assign(result, current));
 
+  }
+
+  static parseHTMLEntities(string: string) {
+    const document = new JSDOM().window.document;
+    const element = document.createElement("textarea");
+    element.innerHTML = string;
+    return element.value;
   }
 
   static removePadding(string: string) {

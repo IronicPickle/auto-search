@@ -35,63 +35,38 @@ export default class NodeServer {
     this.express.use(cookieParser());
     this.express.use(bodyParser.urlencoded({ extended: false }));
     this.express.use(bodyParser.json());
-    //if(environment === "production") this.express.use(csurf());
 
     if(config.proxy) this.express.set("trust proxy", 1);
   }
 
-  start() {
-    return new Promise<void>(async (resolve, reject) => {
+  async start() {
 
-      const environment = process.env.NODE_ENV;
+    const environment = process.env.NODE_ENV;
 
-      const express = this.express;
-      const port = this.port;
-      
-      this.socketServer = this.socketServer.listen(this.httpServer);
-      this.httpServer = this.httpServer.listen(port);
+    const express = this.express;
+    const port = this.port;
+    
+    this.socketServer = this.socketServer.listen(this.httpServer);
+    this.httpServer = this.httpServer.listen(port);
 
-      express.all("*", (req: Request, res: Response, next: NextFunction) => {
-        logger.http(`[${req.method}] ${req.url} from ${req.ip}`);
-        return next();
-      });
-      
-      // Socket namespaces
-      new Search(this.httpServer, this.socketServer);
+    express.all("*", (req: Request, res: Response, next: NextFunction) => {
+      logger.http(`[${req.method}] ${req.url} from ${req.ip}`);
+      return next();
+    });
+    
+    // Socket namespaces
+    new Search(this.httpServer, this.socketServer);
 
-      // Express routes
-      for(const i in routes) {
-        express.use(i, (err: any, req: Request, res: Response, next: NextFunction) => {
-          routes[i](this.httpServer, this.socketServer);
-          return next();
-        });
-        logger.info(`[Node] Registered route '${i}'`);
+    express.all("*", (req: Request, res: Response, next: NextFunction) => {
+      let file = fs.readFileSync(path.join(this.publicPath, "index.html")).toString();
+      if(environment === "production") {
+        res.status(200).send(file);
+      } else if(config.devUrl) {
+        res.redirect(config.devUrl);
+      } else {
+        res.sendStatus(404);
       }
-
-      express.all("*", (req: Request, res: Response, next: NextFunction) => {
-        let file = fs.readFileSync(path.join(this.publicPath, "index.html")).toString();
-        if(environment === "production") {
-          //file = file.replace("__CSRF_TOKEN__", req.csrfToken());
-          res.status(200).send(file);
-        } else if(config.devUrl) {
-          res.redirect(config.devUrl);
-        } else {
-          res.sendStatus(404);
-        }
-        return next();
-
-      });
-
-      express.use((err: any, req: Request, res: Response, next: NextFunction) => {
-        if(err.code === "EBADCSRFTOKEN") {
-          logger.http(`[EBADCSRFTOKEN] ${req.url} from ${req.ip}`);
-          res.status(403).send({ success: false, msg: "Invalid CSRF token" });
-        }
-
-        return next();
-
-      });
-      
+      return next();
     });
 
   }
