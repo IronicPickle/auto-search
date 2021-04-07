@@ -19,6 +19,7 @@ export default class PlanningPublicAccess extends PublicAccess {
     pipe("info", "Generating Session");
     const err = await this.getCredentials();
     if(err != null) throw err;
+    pipe("success", "Session Created");
 
     const address = this.address;
 
@@ -41,6 +42,7 @@ export default class PlanningPublicAccess extends PublicAccess {
         strict
       }, pipe);
       this.appendResults(planningApps, results);
+      pipe("success", `Processed ${results.length} Results`);
     }
 
     return planningApps;
@@ -59,7 +61,16 @@ export default class PlanningPublicAccess extends PublicAccess {
     bolton: "https://www.planningpa.bolton.gov.uk/online-applications-17/",
     rochdale: "https://publicaccess.rochdale.gov.uk/online-applications/",
     tameside: "https://publicaccess.tameside.gov.uk/online-applications/",
-    manchester: "https://pa.manchester.gov.uk/online-applications/"
+    manchester: "https://pa.manchester.gov.uk/online-applications/",
+    salford: "https://publicaccess.salford.gov.uk/publicaccess/",
+    trafford: "https://publicaccess.trafford.gov.uk/online-applications/",
+    wigan: "https://planning.wigan.gov.uk/online-applications/",
+    oldham: "https://planningpa.oldham.gov.uk/online-applications/",
+    bury: "https://planning.bury.gov.uk/online-applications/",
+    cheshire_west: "https://pa.cheshirewestandchester.gov.uk/online-applications/",
+    chorley: "https://planning.chorley.gov.uk/online-applications/",
+    west_lancs: "https://pa.westlancs.gov.uk/online-applications/",
+    blackpool: "https://idoxpa.blackpool.gov.uk/online-applications/"
   }
 
 }

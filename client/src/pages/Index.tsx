@@ -8,8 +8,10 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { Building, Planning } from "../components/utils/interfaces";
 import PlanningContainer from "../components/sections/containers/Planning";
 import BuildingContainer from "../components/sections/containers/Building";
+
 import TocIcon from "@material-ui/icons/Toc";
 import WarningIcon from "@material-ui/icons/Warning";
+import ErrorIcon from "@material-ui/icons/Error";
 
 const styles = (theme: Theme) => ({
   mainContainer: {
@@ -197,13 +199,17 @@ class Index extends Component<Props, State> {
       this.logAppend({ type: "info", msg });
     });
 
+    socket.on("warning", (msg: string) => {
+      this.logAppend({ type: "warning", msg });
+    });
+
     socket.on("error", (msg: string) => {
       this.logAppend({ type: "error", msg });
     });
     
     socket.on("planning", (data: any) => {
       const chunkStates = this.state.chunkStates.map((chunkState, i) => {
-        return this.state.log[i].find(logEntry => logEntry.type === "error") != null
+        return this.state.log[i].find(logEntry => logEntry.type === "error" || logEntry.type === "warning") != null
       });
       chunkStates[chunkStates.length - 1] = true;
       this.setState({ searchState: false, planningApps: data, chunkStates });
@@ -211,7 +217,7 @@ class Index extends Component<Props, State> {
     
     socket.on("building", (data: any) => {
       const chunkStates = this.state.chunkStates.map((chunkState, i) => {
-        return this.state.log[i].find(logEntry => logEntry.type === "error") != null
+        return this.state.log[i].find(logEntry => logEntry.type === "error" || logEntry.type === "warning") != null
       });
       chunkStates[chunkStates.length - 1] = true;
       this.setState({ searchState: false, buildingRegs: data, chunkStates });
@@ -233,6 +239,12 @@ class Index extends Component<Props, State> {
       planningApps: [],
       buildingRegs: []
     });
+  }
+
+  private icons = {
+    success: <TocIcon color="secondary" />,
+    warning: <WarningIcon color="secondary" />,
+    error: <ErrorIcon color="secondary" />
   }
 
   render() {
@@ -282,6 +294,17 @@ class Index extends Component<Props, State> {
                             <MenuItem value="stockport" dense>Stockport</MenuItem>
                             <MenuItem value="bolton" dense>Bolton</MenuItem>
                             <MenuItem value="rochdale" dense>Rochdale</MenuItem>
+                            <MenuItem value="tameside" dense>Tameside</MenuItem>
+                            <MenuItem value="manchester" dense>Manchester</MenuItem>
+                            <MenuItem value="salford" dense>Salford</MenuItem>
+                            <MenuItem value="trafford" dense>Trafford</MenuItem>
+                            <MenuItem value="wigan" dense>Wigan</MenuItem>
+                            <MenuItem value="oldham" dense>Oldham</MenuItem>
+                            <MenuItem value="bury" dense>Bury</MenuItem>
+                            <MenuItem value="cheshire_west" dense>Cheshire West and Chester</MenuItem>
+                            <MenuItem value="chorley" dense>Chorley</MenuItem>
+                            <MenuItem value="west_lancs" dense>West Lancs</MenuItem>
+                            <MenuItem value="blackpool" dense>Blackpool</MenuItem>
                           </Select>
                         </Grid>
                         <Grid item className={classes.fieldContainer}>
@@ -414,8 +437,12 @@ class Index extends Component<Props, State> {
                                       className={`${classes.logEntry} ${classes.logBreak}`}
                                       icon={
                                         (chunk.find(entry0 => entry0.type === "error") != null) ?
-                                          <WarningIcon color="secondary"/>
-                                          : <TocIcon color="secondary"/>
+                                          this.icons.error
+                                        : (chunk.find(entry0 => entry0.type === "warning") != null) ?
+                                            this.icons.warning
+                                            : (chunk.find(entry0 => entry0.type === "success") != null) ?
+                                              this.icons.success
+                                            : <CircularProgress color="secondary" size={24} />
                                       }
                                     >{entry.msg}</Alert>
                                     </AccordionSummary>

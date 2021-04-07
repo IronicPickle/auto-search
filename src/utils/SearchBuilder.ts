@@ -52,14 +52,31 @@ export default class SearchBuilder {
     bolton: PlanningPublicAccess,
     rochdale: PlanningPublicAccess,
     tameside: PlanningPublicAccess,
-    manchester: PlanningPublicAccess
+    manchester: PlanningPublicAccess,
+    salford: PlanningPublicAccess,
+    trafford: PlanningPublicAccess,
+    wigan: PlanningPublicAccess,
+    oldham: PlanningPublicAccess,
+    bury: PlanningPublicAccess,
+    cheshire_west: PlanningPublicAccess,
+    chorley: PlanningPublicAccess,
+    west_lancs: PlanningPublicAccess,
+    blackpool: PlanningPublicAccess
   }
 
   buildingBuilders: { [key: string]: Constructable<BuildingBuilder> } = {
     stockport: BuildingPublicAccess,
     bolton: BuildingPublicAccess,
     rochdale: BuildingPublicAccess,
-    manchester: BuildingPublicAccess
+    manchester: BuildingPublicAccess,
+    salford: PlanningPublicAccess,
+    trafford: PlanningPublicAccess,
+    oldham: PlanningPublicAccess,
+    bury: PlanningPublicAccess,
+    cheshire_west: PlanningPublicAccess,
+    chorley: PlanningPublicAccess,
+    west_lancs: PlanningPublicAccess,
+    blackpool: PlanningPublicAccess
   }
 
 }

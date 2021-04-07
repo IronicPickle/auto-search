@@ -93,7 +93,7 @@ export default class PublicAccess {
       if(this.checkAddress(parsedResult.address, options.strict)) parsedResults.push(parsedResult);
     }
 
-    pipe("success", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
+    pipe("info", `Found ${results.length} Results [${parsedResults.length} Matching Address]`)
     if(result !== 0) pipe("info", "Cycling Results");
 
     return await this.cycleResults(parsedResults, options.type, pipe);

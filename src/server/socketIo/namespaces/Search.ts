@@ -37,7 +37,20 @@ export class Search {
   }
 
   private councils = [
-    "stockport", "bolton", "rochdale"
+    "stockport",
+    "bolton",
+    "rochdale",
+    "manchester",
+    "tameside",
+    "salford",
+    "trafford",
+    "wigan",
+    "oldham",
+    "bury",
+    "cheshire_west",
+    "chorley",
+    "west_lancs",
+    "blackpool"
   ]
 
   private validateCouncil(value: any) {
@@ -103,28 +116,38 @@ export class Search {
           socket.emit("errors SEARCH_DETAILS", errors);
           return logger.info(`[Search] Client 'complete search' request failed validation checks`);
         }
+        socket.emit("success", "Details Validated");
         const searchBuilder = new SearchBuilder(data.council, data.address);
-        if(searchBuilder.planning == null) return;
-        if(searchBuilder.building == null) return;
+        let planningApps = [];
+        let buildingRegs = [];
 
-        const planningApps = await searchBuilder.planning.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
-          logger.error(`[Search] ${err}`);
-          socket.emit("error", err.message);
-        });
+        if(searchBuilder.planning != null) {
+          planningApps = await searchBuilder.planning.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
+            logger.error(`[Search] ${err}`);
+            socket.emit("error", err.message);
+          });
+        } else {
+          socket.emit("break", "Cannot Perform Planning Search");
+          socket.emit("warning", `Planning Searches are not supported for ${data.council.toUpperCase()}`);
+        }
 
-        const buildingRegs = await searchBuilder.building.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
-          logger.error(`[Search] ${err}`);
-          socket.emit("error", err.message);
-        });
-
-
+        if(searchBuilder.building != null) {
+          buildingRegs = await searchBuilder.building.completeSearch(true, this.pipe(socket)).catch((err: Error) => {
+            logger.error(`[Search] ${err}`);
+            socket.emit("error", err.message);
+          });
+        } else {
+          socket.emit("break", "Cannot Perform Building Search");
+          socket.emit("warning", `Building Searches are not supported for ${data.council.toUpperCase()}`);
+        }
 
         socket.emit("break", "Search Summary");
-        socket.emit("info", `Planning Applications Found: ${(planningApps == null) ? "0" : planningApps.length}`);
-        socket.emit("info", `Building Regulations Found: ${(buildingRegs == null) ? "0" : buildingRegs.length}`);
+        socket.emit("info", `Planning Applications Found: ${planningApps.length}`);
+        socket.emit("info", `Building Regulations Found: ${buildingRegs.length}`);
+        socket.emit("success", "Search Successful");
         
-        socket.emit("planning", planningApps || []);
-        socket.emit("building", buildingRegs || []);
+        socket.emit("planning", planningApps);
+        socket.emit("building", buildingRegs);
 
       });
 
