@@ -35,6 +35,7 @@ export default class NodeServer {
     this.express.use(cookieParser());
     this.express.use(bodyParser.urlencoded({ extended: false }));
     this.express.use(bodyParser.json());
+    //if(environment === "production") this.express.use(csurf());
 
     if(config.proxy) this.express.set("trust proxy", 1);
   }
@@ -50,7 +51,6 @@ export default class NodeServer {
       this.socketServer = this.socketServer.listen(this.httpServer);
       this.httpServer = this.httpServer.listen(port);
 
-      // Express routes
       express.all("*", (req: Request, res: Response, next: NextFunction) => {
         logger.http(`[${req.method}] ${req.url} from ${req.ip}`);
         return next();
@@ -59,17 +59,19 @@ export default class NodeServer {
       // Socket namespaces
       new Search(this.httpServer, this.socketServer);
 
+      // Express routes
       for(const i in routes) {
-        express.use(i, routes[i](this.httpServer, this.socketServer));
+        express.use(i, (err: any, req: Request, res: Response, next: NextFunction) => {
+          routes[i](this.httpServer, this.socketServer);
+          return next();
+        });
         logger.info(`[Node] Registered route '${i}'`);
       }
-
-      if(environment === "production") express.use(csurf());
 
       express.all("*", (req: Request, res: Response, next: NextFunction) => {
         let file = fs.readFileSync(path.join(this.publicPath, "index.html")).toString();
         if(environment === "production") {
-          file = file.replace("__CSRF_TOKEN__", req.csrfToken());
+          //file = file.replace("__CSRF_TOKEN__", req.csrfToken());
           res.status(200).send(file);
         } else if(config.devUrl) {
           res.redirect(config.devUrl);
