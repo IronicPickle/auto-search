@@ -451,8 +451,8 @@ class Index extends Component<Props, State> {
                                         (chunk.find(entry0 => entry0.type === "error") != null) ?
                                           this.icons.error
                                         : (chunk.find(entry0 => entry0.type === "warning") != null) ?
-                                            this.icons.warning
-                                            : (chunk.find(entry0 => entry0.type === "success") != null) ?
+                                          this.icons.warning
+                                          : (chunk.find(entry0 => entry0.type === "success") != null) ?
                                               this.icons.success
                                             : <CircularProgress color="secondary" size={24} />
                                       }
