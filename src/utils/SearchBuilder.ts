@@ -6,7 +6,7 @@ import { Constructable } from "./types";
 export interface Address {
   [key: string]: any;
   house?: string;
-  street?: string;
+  street: string;
   addressLine2?: string;
   postCode?: string;
 }

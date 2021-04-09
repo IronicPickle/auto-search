@@ -161,9 +161,9 @@ class Index extends Component<Props, State> {
     }
   }
 
-  logChunk(entry: LogEntry) {
+  logChunk(msg: string) {
     const { log, chunkStates } = this.state;
-    log.push([ entry ]);
+    log.push([ { type: "break", msg } ]);
     chunkStates[chunkStates.length - 1] = false;
     chunkStates.push(true);
     this.setState({ log, chunkStates });
@@ -197,47 +197,47 @@ class Index extends Component<Props, State> {
       console.log("[Socket.IO] Socket Disconnected");
     });
 
-    socket.on("break", (msg: string) => {
-      this.setState({ errors: null });
-      this.logChunk({ type: "break", msg });
+    socket.on("stage", (stage: string) => {
+      if(!this.state.searchState) return;
+      switch(stage) {
+        case "validation":
+          break;
+        case "started":
+          break;
+        case "finished":
+          const chunkStates = this.state.chunkStates.map((chunkState, i) => {
+            return this.state.log[i].find(logEntry => logEntry.type === "error" || logEntry.type === "warning") != null
+          });
+          chunkStates[chunkStates.length - 1] = true;
+          this.setState({ searchState: false, chunkStates });
+          break;
+      }
     });
 
-    socket.on("success", (msg: string) => {
-      this.setState({ errors: null });
-      this.logAppend({ type: "success", msg });
+    socket.on("error SEARCH_DETAILS", (errors: any) => {
+      if(!this.state.searchState) return;
+      this.setState({ errors, searchState: false });
+      this.logAppend({ type: "error", msg: "Something Went Wrong" })
     });
 
-    socket.on("info", (msg: string) => {
-      this.logAppend({ type: "info", msg });
-    });
-
-    socket.on("warning", (msg: string) => {
-      this.logAppend({ type: "warning", msg });
-    });
-
-    socket.on("error", (msg: string) => {
-      this.logAppend({ type: "error", msg });
-    });
     
     socket.on("planning", (data: any) => {
-      const chunkStates = this.state.chunkStates.map((chunkState, i) => {
-        return this.state.log[i].find(logEntry => logEntry.type === "error" || logEntry.type === "warning") != null
-      });
-      chunkStates[chunkStates.length - 1] = true;
-      this.setState({ searchState: false, planningApps: data, chunkStates });
+      this.setState({ planningApps: data });
     });
     
     socket.on("building", (data: any) => {
-      const chunkStates = this.state.chunkStates.map((chunkState, i) => {
-        return this.state.log[i].find(logEntry => logEntry.type === "error" || logEntry.type === "warning") != null
-      });
-      chunkStates[chunkStates.length - 1] = true;
-      this.setState({ searchState: false, buildingRegs: data, chunkStates });
+      this.setState({ buildingRegs: data });
     });
 
-    socket.on("errors SEARCH_DETAILS", (errors: any) => {
-      this.setState({ errors, searchState: false });
-      this.logAppend({ type: "error", msg: "Something Went Wrong" })
+    
+    socket.on("break", (msg: string) => {
+      if(!this.state.searchState) return;
+      this.logChunk(msg);
+    });
+
+    socket.on("log", (type: string, msg: string) => {
+      if(!this.state.searchState) return;
+      this.logAppend({ type: type as LogType, msg });
     });
   }
 
@@ -255,6 +255,7 @@ class Index extends Component<Props, State> {
 
   private icons = {
     success: <TocIcon color="secondary" />,
+    info: <TocIcon color="secondary" />,
     warning: <WarningIcon color="secondary" />,
     error: <ErrorIcon color="secondary" />
   }
@@ -448,13 +449,15 @@ class Index extends Component<Props, State> {
                                       severity="info"
                                       className={`${classes.logEntry} ${classes.logBreak}`}
                                       icon={
-                                        (chunk.find(entry0 => entry0.type === "error") != null) ?
-                                          this.icons.error
-                                        : (chunk.find(entry0 => entry0.type === "warning") != null) ?
-                                          this.icons.warning
-                                          : (chunk.find(entry0 => entry0.type === "success") != null) ?
-                                              this.icons.success
-                                            : <CircularProgress color="secondary" size={24} />
+                                        (searchState && log.length === i + 1) ?
+                                          <CircularProgress color="secondary" size={24} />
+                                        : (chunk.find(entry0 => entry0.type === "error") != null) ?
+                                            this.icons.error
+                                          : (chunk.find(entry0 => entry0.type === "warning") != null) ?
+                                            this.icons.warning
+                                            : (chunk.find(entry0 => entry0.type === "success") != null) ?
+                                                this.icons.success
+                                              : this.icons.info
                                       }
                                     >{entry.msg}</Alert>
                                     </AccordionSummary>

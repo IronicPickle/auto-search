@@ -25,16 +25,17 @@ export default class BuildingPublicAccess extends PublicAccess {
 
     const buildingRegs: Building[] = [];
 
-    if(address.house != null && address.street != null) {
-      pipe("break", "Performing House and Street Search");
-      const results = await this.customSearch({
-        type: "BuildingControl",
-        query: `${address.house} ${address.street}` || "",
-        strict
-      }, pipe);
-      this.appendResults(buildingRegs, results);
-      pipe("success", `Processed ${results.length} Results`);
-    }
+    let houseStreet = `${address.house} ${address.street}`;
+    if((address.house == null || address.house?.length === 0)) houseStreet = address.street;
+
+    pipe("break", "Performing House and Street Search");
+    const results = await this.customSearch({
+      type: "BuildingControl",
+      query: houseStreet,
+      strict
+    }, pipe);
+    this.appendResults(buildingRegs, results);
+    pipe("success", `Processed ${results.length} Results`);
 
     return buildingRegs;
   }

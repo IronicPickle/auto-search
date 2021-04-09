@@ -1,5 +1,4 @@
 import http from "http";
-import { Address } from "node:cluster";
 import socketIo, { Socket, Namespace } from "socket.io";
 import { logger } from "../../../app";
 import SearchBuilder, { LogType } from "../../../utils/SearchBuilder";
@@ -12,11 +11,11 @@ export class Search {
     this.start();
   }
 
-  private validateInputs(data: { council: string, address: Address, strict: boolean }) {
+  private completeSearchValidate(body: any) {
     const errors =  {
-      council: this.validateCouncil(data.council),
-      address: this.validateAddress(data.address, data.strict),
-      strict: this.validateSrict(data.strict)
+      council: this.validateCouncil(body.council),
+      address: this.validateAddress(body.address, body.strict),
+      strict: this.validateSrict(body.strict)
     }
 
     const errorArray: any[] = [];
@@ -73,8 +72,7 @@ export class Search {
       postCode: null
     }
 
-    if(typeof(value.house) !== "string") { errors.house = "House is Required"; }
-    else if(value.house.length === 0) { errors.house = "House is Required"; }
+    if(typeof(value.house) !== "string" && value.house != null) { errors.house = "House is Required"; }
 
     if(typeof(value.street) !== "string") { errors.street = "Street is Required" }
     else if(value.street.length === 0) { errors.street = "Street is Required"; }
@@ -110,13 +108,36 @@ export class Search {
         logger.http(`[Search] Socket disconnected: ${socket.id}`);
       });
 
-      socket.on("completeSearch", async (data: { council: string, address: Address, strict: boolean }) => {
-        const [ errored, errors ] = this.validateInputs(data);
+      interface CompleteSearchParams {
+        council: string; //~ REQUIRED & MUST MATCH SUPPORTED COUNCIL
+        address: {
+          house?: string; //~ OPTIONAL - WILL DEFAULT TO AN EMPTY STRING
+          street: string; //~ REQUIRED
+          addressLine2?: string; //~ OPTIONAL - REQUIRED IF data.strict === true
+          postCode?: string; //~ OPTIONAL - REQUIRES IF data.strict === true
+        },
+        strict: boolean; // ~ REQUIRED;
+      }
+
+      socket.on("completeSearch", async (body?: any) => {
+
+        socket.emit("stage", "validation");
+
+        if(body == null) {
+          socket.emit("error BODY_ERROR", "Search Details are Missing");
+          return logger.info(`[Search] Client 'complete search' requested with no body`);
+        }
+        
+        const [ errored, errors ] = this.completeSearchValidate(body);
         if(errored) {
-          socket.emit("errors SEARCH_DETAILS", errors);
+          socket.emit("error SEARCH_DETAILS", errors);
           return logger.info(`[Search] Client 'complete search' request failed validation checks`);
         }
-        socket.emit("success", "Details Validated");
+
+        const data = <CompleteSearchParams> body;
+        socket.emit("log", "success", "Details Validated");
+        
+        socket.emit("stage", "started");
         const searchBuilder = new SearchBuilder(data.council, data.address);
         let planningApps = [];
         let buildingRegs = [];
@@ -124,33 +145,34 @@ export class Search {
         if(searchBuilder.planning != null) {
           planningApps = await searchBuilder.planning.completeSearch(data.strict, this.pipe(socket)).catch((err: Error) => {
             logger.error(`[Search] ${err}`);
-            socket.emit("error", err.message);
+            socket.emit("log", "error", err.message);
           });
         } else {
           socket.emit("break", "Cannot Perform Planning Search");
-          socket.emit("warning", `Planning Searches are not supported for ${data.council.toUpperCase()}`);
+          socket.emit("log", "warning", `Planning Searches are not supported for ${data.council.toUpperCase()}`);
         }
 
         if(searchBuilder.building != null) {
           buildingRegs = await searchBuilder.building.completeSearch(data.strict, this.pipe(socket)).catch((err: Error) => {
             logger.error(`[Search] ${err}`);
-            socket.emit("error", err.message);
+            socket.emit("log", "error", err.message);
           });
         } else {
           socket.emit("break", "Cannot Perform Building Search");
-          socket.emit("warning", `Building Searches are not supported for ${data.council.toUpperCase()}`);
+          socket.emit("log", "warning", `Building Searches are not supported for ${data.council.toUpperCase()}`);
         }
 
         socket.emit("break", "Search Summary");
         if(planningApps != null) {
-          socket.emit("info", `Planning Applications Found: ${planningApps.length}`);
+          socket.emit("log", "info", `Planning Applications Found: ${planningApps.length}`);
           socket.emit("planning", planningApps);
         } if(buildingRegs != null) {
-          socket.emit("info", `Building Regulations Found: ${buildingRegs.length}`);
+          socket.emit("log", "info", `Building Regulations Found: ${buildingRegs.length}`);
           socket.emit("building", buildingRegs);
         }
-        socket.emit("success", "Search Finished");
         
+        socket.emit("log", "success", "Search Finished");
+        socket.emit("stage", "finished");
 
       });
 
@@ -158,19 +180,15 @@ export class Search {
   }
 
   pipe(socket: Socket) {
-    return (type: LogType | "data", msg: string,  data?: any) => {
+    return (type: LogType, msg: string) => {
       switch(type) {
-        case "data":
-          logger.info(`[Search] ${msg}`);
-          socket.emit("planning", data);
-          break;
-        case "error":
+        case "break":
           logger.error(`[Search] ${msg}`);
-          socket.emit("error", msg);
+          socket.emit("break", msg);
           break;
         default:
           logger.info(`[Search] ${msg}`);
-          socket.emit(type, msg);
+          socket.emit("log", type, msg);
           break;
       }
     }

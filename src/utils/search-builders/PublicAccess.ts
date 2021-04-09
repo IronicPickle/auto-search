@@ -208,7 +208,10 @@ export default class PublicAccess {
     const start = `(?<=${base}|^)`;
     const end = `(?=${base}|$)`;
 
-    const houseStreetRegex = new RegExp(`${start}${searchAddress.house} ${searchAddress.street}${end}`, "g");
+    let houseStreet = `${searchAddress.house} ${searchAddress.street}`;
+    if((searchAddress.house == null || searchAddress.house?.length === 0)) houseStreet = searchAddress.street;
+
+    const houseStreetRegex = new RegExp(`${start}${houseStreet}${end}`, "g");
     const addressLine2Regex = new RegExp(`${start}${searchAddress.addressLine2}${end}`, "g");
     const postCodeRegex = new RegExp(`${start}${searchAddress.postCode}${end}`, "g");
     const postCodeNoSpaceRegex = new RegExp(`${start}${searchAddress.postCode?.replace(/ /g, "")}${end}`, "g");

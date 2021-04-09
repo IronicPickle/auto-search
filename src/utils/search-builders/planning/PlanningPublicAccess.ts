@@ -24,17 +24,18 @@ export default class PlanningPublicAccess extends PublicAccess {
     const address = this.address;
 
     const planningApps: Planning[] = [];
+    
+    let houseStreet = `${address.house} ${address.street}`;
+    if((address.house == null || address.house?.length === 0)) houseStreet = address.street;
 
-    if(address.house != null && address.street != null) {
-      pipe("break", "Performing House and Street Search");
-      const results = await this.customSearch({
-        type: "Application",
-        query: `${address.house} ${address.street}` || "",
-        strict
-      }, pipe);
-      this.appendResults(planningApps, results);
-      pipe("success", `Processed ${results.length} Results`);
-    }
+    pipe("break", "Performing House and Street Search");
+    const results = await this.customSearch({
+      type: "Application",
+      query: houseStreet,
+      strict
+    }, pipe);
+    this.appendResults(planningApps, results);
+    pipe("success", `Processed ${results.length} Results`);
 
     return planningApps;
   }
