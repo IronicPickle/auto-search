@@ -3,7 +3,6 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { Express } from "express-serve-static-core";
-import routes from "./routes";
 import http from "http";
 import csurf from "csurf";
 import fs from "fs";

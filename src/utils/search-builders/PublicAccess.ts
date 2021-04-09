@@ -6,7 +6,6 @@ import { Building, Planning } from "../interfaces";
 import { queryElement } from "../utils";
 import { buildingFields, planningFields } from "../vars";
 import { logger } from "../../app";
-import { Options } from "body-parser";
 
 export interface CustomSearchOptions {
   type: "Application" | "BuildingControl";
